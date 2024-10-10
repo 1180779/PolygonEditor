@@ -17,13 +17,25 @@ namespace PolygonEditor
 {
     public partial class Main : Form
     {
+        bool change = false;
+        Polygon? movingP = null;
+
         DirectBitmap drawArea;
+        List<Polygon> polygons = new();
+
+        Point ML = new Point(-1, 0); // mouse location
+        Point PML = new Point(-1, 0); // prevoius mouse location
+        private void Signal_Production()
+        {
+            About a = new About();
+            a.ShowDialog();
+        }
         public Main()
         {
             InitializeComponent();
 
             drawArea = new DirectBitmap(canvas.Width, canvas.Height);
-            using (Graphics g = Graphics.FromImage(drawArea.Bitmap)) 
+            using (Graphics g = Graphics.FromImage(drawArea.Bitmap))
             {
                 g.Clear(Color.White);
             }
@@ -31,43 +43,17 @@ namespace PolygonEditor
 
 
 
-            List<Item> Items = new();
             Point center = new Point(canvas.Width / 2, canvas.Height / 2);
-            Vertex c = new Vertex(center);
-
-            int R = 100;
-            int[] angles = { 150, 30, -90 };
-
-            Vertex[] vertices = new Vertex[3];
-            for (int i = 0; i < 3; ++i) 
-            {
-                vertices[i] = new Vertex(center);
-                vertices[i].X += (int)(R * Math.Cos((double) angles[i] / 360 * 2 * Math.PI));
-                vertices[i].Y += (int)(R * Math.Sin((double) angles[i] / 360 * 2 * Math.PI));
-            }
-
-            Line[] lines = new Line[3];
-            for(int i = 0; i < 3; ++i) 
-            {
-                lines[i] = new Line(vertices[i], vertices[(i + 1) % 3]);
-            }
-            for(int i = 0; i < 3; ++i)
-            {
-                Items.Add(vertices[i]);
-                Items.Add(lines[i]);
-            }
+            PolygonFactory f = new(center);
+            Polygon p = f.Generate();
 
             using (Graphics g = Graphics.FromImage(drawArea.Bitmap))
             {
-                Pen p = new Pen(Color.Black);
-                foreach(var item in Items) 
-                {
-                    item.Draw(g, p);
-                }
-                c.Draw(g, p);
-
-                p.Dispose();
+                Pen pen = new Pen(Color.Black);
+                p.Draw(g, pen, Brushes.Black);
+                pen.Dispose();
             }
+            polygons.Add(p);
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -76,6 +62,56 @@ namespace PolygonEditor
             about.ShowDialog();
         }
 
+        private void canvas_Paint(object sender, PaintEventArgs e)
+        {
+            using (Graphics g = Graphics.FromImage(drawArea.Bitmap))
+            {
+                g.Clear(Color.White);
+                Pen pen = new Pen(Color.Black);
+                foreach (var p in polygons)
+                {
+                    p.Draw(g, pen, Brushes.Black);
+                }
+                pen.Dispose();
+            }
+        }
         
+        private void canvas_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+
+            ML = e.Location;
+            foreach (var p in polygons)
+            {
+                if (p.SelectedVertex(ML) || p.Selected(ML)) 
+                {
+                    movingP = p;
+                    change = true;
+                    return;
+                }
+            }
+        }
+
+
+        private void canvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if(!change) 
+                return;
+
+            PML = ML;
+            ML = e.Location;
+            movingP?.MoveWHoleOrVertex(PML, ML);
+            canvas.Invalidate();
+        }
+
+        private void canvas_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+            canvas.Invalidate();
+            change = false;
+            movingP = null;
+        }
     }
 }

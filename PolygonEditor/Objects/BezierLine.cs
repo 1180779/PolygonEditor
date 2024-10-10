@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PolygonEditor.Objects
 {
-    public class BezierLine : Line
+    public class BezierLine : Line, IMovable
     {
         public Vertex? P2 { get; set; }
         public Vertex? P3 { get; set; } 
@@ -45,6 +45,20 @@ namespace PolygonEditor.Objects
             if (A == null || P2 == null || P3 == null || B == null)
                 throw new InvalidOperationException();
             g.DrawBezier(p, A.Point, P2.Point, P3.Point, B.Point);
+        }
+
+        public void Move(Point prevML, Point ML)
+        {
+            // move one of the control points 
+            // and chandle the necessary changes
+            throw new NotImplementedException();
+        }
+
+        public bool Selected(Point ML)
+        {
+            if (P2 == null || P3 == null)
+                throw new InvalidOperationException();
+            return P2.Selected(ML) || P3.Selected(ML);
         }
     }
 }

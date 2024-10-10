@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace PolygonEditor.Objects
 {
-    public class Vertex : Item
+    public class Vertex : Item, IMovable
     {
-        private const int RADIUS = 10;
+        private const int RADIUS = 5;
         private Point _point;
         public Point Point { get { return _point; } set { _point = value; } }
         public int X { get { return _point.X; } set { _point.X = value; } }
@@ -50,6 +50,17 @@ namespace PolygonEditor.Objects
         {
             g.FillEllipse(b, X - RADIUS, Y - RADIUS, RADIUS * 2, RADIUS * 2);
             g.DrawEllipse(p, X - RADIUS, Y - RADIUS, RADIUS * 2, RADIUS * 2);
+        }
+
+        public void Move(Point PML, Point ML)
+        {
+            _point.X += ML.X - PML.X;
+            _point.Y += ML.Y - PML.Y;
+        }
+
+        public bool Selected(Point ML)
+        {
+            return Geometry.Dist2(_point, ML) <= RADIUS * RADIUS;
         }
     }
 }

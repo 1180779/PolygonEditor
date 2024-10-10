@@ -9,6 +9,5 @@ namespace PolygonEditor.Objects
     public abstract class Item
     {
         public abstract void Draw(Graphics g, Pen p, Brush b);
-
     }
 }
