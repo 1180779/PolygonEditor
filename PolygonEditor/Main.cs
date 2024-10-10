@@ -17,8 +17,8 @@ namespace PolygonEditor
 {
     public partial class Main : Form
     {
-        bool change = false;
-        Polygon? movingP = null;
+        bool moving = false; // moving item with left mouse button
+        Polygon? selectedP = null; // selected polygon (item within polygon) with left mouse click
 
         DirectBitmap drawArea;
         List<Polygon> polygons = new();
@@ -70,48 +70,84 @@ namespace PolygonEditor
                 Pen pen = new Pen(Color.Black);
                 foreach (var p in polygons)
                 {
-                    p.Draw(g, pen, Brushes.Black);
+                    if (p == selectedP)
+                    {
+                        p.DrawSelected(g, pen, Brushes.Black, Brushes.LightGreen);
+                    }
+                    else
+                    {
+                        p.Draw(g, pen, Brushes.Black);
+                    }
                 }
                 pen.Dispose();
             }
         }
-        
+
         private void canvas_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Left)
-                return;
-
-            ML = e.Location;
-            foreach (var p in polygons)
+            if (e.Button == MouseButtons.Left)
             {
-                if (p.SelectedVertex(ML) || p.Selected(ML)) 
+                ML = e.Location;
+                foreach (var p in polygons)
                 {
-                    movingP = p;
-                    change = true;
-                    return;
+                    if (p.SelectedItem(ML) || p.Selected(ML))
+                    {
+                        // p is the selected polygon
+                        selectedP = p;
+                        moving = true;
+                        canvas.Invalidate();
+                        return;
+                    }
                 }
+                // no polygon selected
+                selectedP = null;
+                moving = false;
+                canvas.Invalidate();
             }
         }
 
 
         private void canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if(!change) 
+            if (selectedP == null || !moving)
                 return;
 
             PML = ML;
             ML = e.Location;
-            movingP?.MoveWHoleOrVertex(PML, ML);
+            selectedP.MoveWHoleOrVertex(PML, ML);
             canvas.Invalidate();
         }
 
         private void canvas_MouseUp(object sender, MouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Left)
-                return;
+            // polygon still selected, but no longer moving
+            if (e.Button == MouseButtons.Left)
+                moving = false;
             canvas.Invalidate();
-            change = false;
-            movingP = null;
+        }
+
+        private void Main_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete && selectedP != null)
+            {
+                if (!selectedP.RemoveVertex())
+                {
+                    Signal_Production();
+                }
+                else
+                {
+                    selectedP = null;
+                    canvas.Invalidate();
+                }
+            }
+            if (e.KeyCode == Keys.N && selectedP != null)
+            {
+                if (selectedP.AddVertex())
+                {
+                    selectedP = null;
+                    canvas.Invalidate();
+                }
+            }
         }
     }
 }

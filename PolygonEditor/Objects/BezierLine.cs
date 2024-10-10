@@ -6,10 +6,13 @@ using System.Threading.Tasks;
 
 namespace PolygonEditor.Objects
 {
-    public class BezierLine : Line, IMovable
+    public class BezierLine : Line
     {
         public Vertex? P2 { get; set; }
-        public Vertex? P3 { get; set; } 
+        public Vertex? P3 { get; set; }
+
+        public override int S_RADIUS => throw new NotImplementedException();
+
         public BezierLine(Vertex a, Vertex b) : base(a, b)
         {
             P2 = null;
@@ -54,7 +57,7 @@ namespace PolygonEditor.Objects
             throw new NotImplementedException();
         }
 
-        public bool Selected(Point ML)
+        public override bool Selected(Point ML)
         {
             if (P2 == null || P3 == null)
                 throw new InvalidOperationException();

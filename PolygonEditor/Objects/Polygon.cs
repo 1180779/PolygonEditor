@@ -5,33 +5,59 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Drawing;
+using System.Net.Http.Headers;
 
 namespace PolygonEditor.Objects
 {
-    public class Polygon : Item, IMovable
+    public class Polygon : MovableItem
     {
+        public List<Vertex> VerticesInOrder = new();
         public List<Vertex> Vertices = new();
-        public Point[] Points = new Point[0];
         public List<Line> Lines = new();
         public List<BezierLine> BezierLines = new();
 
-        Vertex? selectedVertex;
-        BezierLine? selectedBezierLine;
+        Vertex? selectedVertex = null;
+        Line? selectedLine = null;
+        BezierLine? selectedBezierLine = null;
+
+        public override int S_RADIUS => throw new NotImplementedException();
+
         public Polygon() 
         {
-            selectedVertex = null;
-            selectedBezierLine = null;
         }
-        public void GeneratePointsFromVerices()
+
+        public Point[] GetPoints()
         {
-            Points = new Point[Vertices.Count];
-            for (int i = 0; i < Vertices.Count; i++)
-                Points[i] = Vertices[i].Point;
+            Point[] points = new Point[Vertices.Count];
+            for (int i = 0; i < Vertices.Count; ++i)
+                points[i] = VerticesInOrder[i].Point;
+            return points;
         }
-        public void DrawSelected(Graphics g, Pen p, Brush b)
+        public override void DrawSelected(Graphics g, Pen p, Brush b, Brush s)
         {
-            Draw(g, p, b);
-            g.FillPolygon(b, Points);
+            if (selectedVertex == null && selectedLine == null && selectedBezierLine == null)
+                g.FillPolygon(s, GetPoints());
+            foreach (var item in BezierLines)
+            {
+                if (item == selectedBezierLine)
+                    item.DrawSelected(g, p, b, s);
+                else
+                    item.Draw(g, p, b);
+            }
+            foreach (var item in Lines)
+            {
+                if(item == selectedLine)
+                    item.DrawSelected(g, p, b, s);
+                else
+                    item.Draw(g, p, b);
+            }
+            foreach (var item in Vertices)
+            {
+                if (item == selectedVertex)
+                    item.DrawSelected(g, p, b, s);
+                else
+                    item.Draw(g, p, b);
+            }
         }
         public override void Draw(Graphics g, Pen p, Brush b) 
         {
@@ -43,7 +69,7 @@ namespace PolygonEditor.Objects
                 item.Draw(g, p, b);
         }
 
-        public void Move(Point PML, Point ML)
+        public override void Move(Point PML, Point ML)
         {
             foreach (var item in Vertices)
                 item.Move(PML, ML);
@@ -51,20 +77,29 @@ namespace PolygonEditor.Objects
                 item.Move(PML, ML);
         }
 
-        public bool Selected(Point ML)
+        public override bool Selected(Point ML)
         {
             return PointInPolygon(ML);
         }
 
-        public bool SelectedVertex(Point ML) 
+        public bool SelectedItem(Point ML) 
         {
             selectedVertex = null;
+            selectedLine = null;
             selectedBezierLine = null;
             foreach(var v in Vertices)
             {
                 if (v.Selected(ML)) 
                 {
                     selectedVertex = v;
+                    return true;
+                }
+            }
+            foreach(var l in Lines)
+            {
+                if (l.Selected(ML))
+                {
+                    selectedLine = l;
                     return true;
                 }
             }
@@ -79,25 +114,94 @@ namespace PolygonEditor.Objects
             return false;
         }
 
-        public void MoveVertex(Point PML, Point ML) 
+        public void MoveItem(Point PML, Point ML) 
         {
             selectedVertex?.Move(PML, ML);
+            selectedLine?.Move(PML, ML);
             selectedBezierLine?.Move(PML, ML);
         }
 
         public void MoveWHoleOrVertex(Point PML, Point ML)
         {
-            if(selectedVertex == null && selectedVertex == null)
+            if(selectedVertex == null && selectedLine == null && selectedVertex == null)
                 Move(PML, ML);
             else
-                MoveVertex(PML, ML);
+                MoveItem(PML, ML);
+        }
+
+        public bool RemoveVertex() 
+        {
+            if (selectedVertex == null && selectedBezierLine == null)
+                return false;
+
+            if (selectedVertex != null) 
+            {
+                if (Vertices.Count == 3)
+                    return false;
+                Vertex vprev = selectedVertex.Prev.A;
+                Vertex vnext = selectedVertex.Next.B;
+                selectedVertex.Prev.B = vnext;
+                selectedVertex.Next.A = vprev;
+
+                Line l = new Line(vprev, vnext);
+                vprev.Next = l;
+                vnext.Prev = l;
+
+                Vertices.Remove(selectedVertex);
+                if (!Lines.Remove(selectedVertex.Prev))
+                    throw new Exception();
+                if(!Lines.Remove(selectedVertex.Next))
+                    throw new Exception();
+                Lines.Add(l);
+                selectedVertex = null;
+                ReconstructVerticesInOrder();
+                return true;
+            }
+            return false;
+        }
+
+        public bool AddVertex() 
+        {
+            if (selectedLine == null)
+                return false;
+
+            Vertex A = selectedLine.A;
+            Vertex C = selectedLine.B;
+
+            Vertex B = new Vertex(selectedLine.Middle);
+            Line prev = new Line(A, B);
+            Line next = new Line(B, C);
+            B.Prev = prev;
+            B.Next = next;
+            
+            Vertices.Add(B);
+            Lines.Remove(selectedLine);
+            Lines.Add(prev);
+            Lines.Add(next);
+            A.Next = prev;
+            C.Prev = next;
+            selectedLine = null;
+            ReconstructVerticesInOrder();
+            return true;
+        }
+
+        public void ReconstructVerticesInOrder() 
+        {
+            VerticesInOrder.Clear();
+            VerticesInOrder.EnsureCapacity(Vertices.Count);
+            Vertex v = Vertices[0];
+            for (int i = 0; i < Vertices.Count; i++) 
+            {
+                VerticesInOrder.Add(v);
+                v = v.Next.B;
+            }
         }
 
         // https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
         // Function to check if a point is inside a polygon
-        public bool PointInPolygon(Point p)
+        private bool PointInPolygon(Point p)
         {
-            int numVertices = Vertices.Count;
+            int numVertices = VerticesInOrder.Count;
             double x = p.X, y = p.Y;
             bool inside = false;
 
@@ -108,7 +212,7 @@ namespace PolygonEditor.Objects
             for (int i = 1; i <= numVertices; i++)
             {
                 // Get the next point in the polygon
-                p2 = Vertices[i % numVertices].Point;
+                p2 = VerticesInOrder[i % numVertices].Point;
 
                 // Check if the point is above the minimum y coordinate of the edge
                 if (y > Math.Min(p1.Y, p2.Y))

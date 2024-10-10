@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace PolygonEditor.Objects
 {
-    public interface IMovable
+    public abstract class MovableItem : Item
     {
-        public void Move(Point prevML, Point ML);
-        public bool Selected(Point ML);
+        public abstract void Move(Point PML, Point ML);
     }
 }

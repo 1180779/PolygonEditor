@@ -25,11 +25,13 @@ namespace PolygonEditor.Objects
             }
 
             List<Line> lines = new(n);
-            for(int i = 0; i < n - 1; i++) 
+            for(int i = 0; i < n; i++) 
             {
-                lines.Add(new Line(vertices[i], vertices[i + 1]));
+                Line line = new Line(vertices[i], vertices[(i + 1) % n]);
+                lines.Add(line);
+                vertices[i].Next = line;
+                vertices[(i + 1) % n].Prev = line;
             }
-            lines.Add(new Line(vertices[n - 1], vertices[0]));
 
             Polygon res = new Polygon();
             for (int i = 0; i < n; i++)
@@ -37,7 +39,7 @@ namespace PolygonEditor.Objects
                 res.Vertices.Add(vertices[i]);
                 res.Lines.Add(lines[i]);
             }
-            res.GeneratePointsFromVerices();
+            res.ReconstructVerticesInOrder();
             return res;
         }
     }
