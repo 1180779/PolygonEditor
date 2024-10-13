@@ -61,7 +61,7 @@ namespace PolygonEditor.Geometry.Objects
 
         public override void DrawSelection(Graphics g, Pen p, Brush s)
         {
-            Point[] points = GetPoints();
+            Point[] points = GetPointsNoBezier();
             g.FillPolygon(s, points);
         }
         public override void Draw(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
@@ -183,7 +183,7 @@ namespace PolygonEditor.Geometry.Objects
 
         public void MoveItem(Vec2 v)
         {
-            selectedVertex?.MoveLock(v);
+            selectedVertex?.MoveLockForce(v);
             selectedLine?.Move(v);
             selectedBezierLine?.Move(v);
         }
@@ -282,8 +282,11 @@ namespace PolygonEditor.Geometry.Objects
             BezierLine bLine = selectedLine.ConvertToBezierLine();
             BezierLines.Add(bLine);
             Lines.Remove(selectedLine);
-            selectedLine.A.Next = bLine;
-            selectedLine.B.Prev = bLine;
+
+            if (selectedLine.A.Prev is BezierLine)
+                selectedLine.A.ContinuityType = Vertex.Continuity.G0;
+            else if (selectedLine.B.Next is BezierLine)
+                selectedLine.B.ContinuityType = Vertex.Continuity.G0;
 
             selectedLine = null;
         }

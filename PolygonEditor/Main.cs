@@ -34,6 +34,9 @@ namespace PolygonEditor
             PolluteRadioRestrs();
             PolluteRadioRestrLineRestr();
 
+            PolluteRadioCons();
+            PolluteRadioConVertexCon();
+
             drawArea = new DirectBitmap(canvas.Width, canvas.Height);
             canvas.Image = drawArea.Bitmap;
 
@@ -42,33 +45,25 @@ namespace PolygonEditor
             polygons.Add(pFactory.Generate());
             canvas.Invalidate();
         }
-        private void DrawPolygons(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
-        {
-
-            foreach (var poly in polygons)
-            {
-                if (poly == selectedP)
-                    poly.DrawSelected(dbitmap, g, p, b, s);
-                else
-                    poly.Draw(dbitmap, g, p, b);
-            }
-
-        }
-        private void DrawLibraryPolygons(Graphics g, Pen p, Brush b, Brush s)
-        {
-            foreach (var poly in polygons)
-            {
-                if (poly == selectedP)
-                    poly.DrawLibrarySelected(g, p, b, s);
-                else
-                    poly.DrawLibrary(g, p, b);
-            }
-        }
         public static void TestSignal()
         {
             About a = new();
             a.ShowDialog();
         }
+
+
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var about = new About();
+            about.ShowDialog();
+        }
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // REMOVING VERTICES HELPER FUNCTIONS
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+
         private void RemoveSelectedVertex()
         {
             if (selectedP == null)
@@ -94,40 +89,34 @@ namespace PolygonEditor
                 canvas.Invalidate();
             }
         }
-        private List<RadioButton> radioRestrs = [];
-        private void PolluteRadioRestrs()
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // DRAWING
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+
+        private void DrawPolygons(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
         {
-            radioRestrs.EnsureCapacity(4);
-            radioRestrs.Add(radioRestrNoRestr);
-            radioRestrs.Add(radioRestrHorizontal);
-            radioRestrs.Add(radioRestrVertical);
-            radioRestrs.Add(radioRestrConst);
-        }
-        private void EnableRadioRestrictions(bool state = true)
-        {
-            foreach (var radioRestr in radioRestrs)
-                radioRestr.Enabled = state;
-        }
-        private void UncheckRadioRestrictionsButOne(RadioButton radioRestrOn)
-        {
-            foreach (var radioRestr in radioRestrs)
+
+            foreach (var poly in polygons)
             {
-                if (radioRestr == radioRestrOn)
-                    continue;
-                radioRestr.Checked = false;
+                if (poly == selectedP)
+                    poly.DrawSelected(dbitmap, g, p, b, s);
+                else
+                    poly.Draw(dbitmap, g, p, b);
             }
-        }
-        private void UncheckRadioRestrictions()
-        {
-            foreach (var radioRestr in radioRestrs)
-                radioRestr.Checked = false;
-        }
 
-
-        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        }
+        private void DrawLibraryPolygons(Graphics g, Pen p, Brush b, Brush s)
         {
-            var about = new About();
-            about.ShowDialog();
+            foreach (var poly in polygons)
+            {
+                if (poly == selectedP)
+                    poly.DrawLibrarySelected(g, p, b, s);
+                else
+                    poly.DrawLibrary(g, p, b);
+            }
         }
 
         private void canvas_Paint(object sender, PaintEventArgs e)
@@ -141,6 +130,13 @@ namespace PolygonEditor
                 DrawPolygons(drawArea, g, p, Brushes.Black, Brushes.LightGreen);
             p.Dispose();
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // MOUSE DOWN EVENTS
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+
         private void canvas_MouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
@@ -148,10 +144,15 @@ namespace PolygonEditor
                 EnableRadioRestrictions(false);
                 UncheckRadioRestrictions();
 
+                EnableRadioCons(false);
+                UncheckRadioCons();
+
+
                 // disable buttons
                 buttonRemoveVertex.Enabled = false;
                 buttonAddVertex.Enabled = false;
                 buttonLineToBezier.Enabled = false;
+
 
                 ML = e.Location;
                 foreach (var p in polygons)
@@ -166,6 +167,16 @@ namespace PolygonEditor
                         if (selectedP.selectedVertex != null)
                         {
                             buttonRemoveVertex.Enabled = true;
+                            if (selectedP.selectedVertex.HasOneBezier)
+                            {
+                                EnableRadioCons();
+                                if (selectedP.selectedVertex.ContinuityType == Vertex.Continuity.G0)
+                                    radioConG0.Checked = true;
+                                else if (selectedP.selectedVertex.ContinuityType == Vertex.Continuity.G1)
+                                    radioConG1.Checked = true;
+                                else if (selectedP.selectedVertex.ContinuityType == Vertex.Continuity.C1)
+                                    radioConC1.Checked = true;
+                            }
                         }
                         else if (selectedP.selectedLine != null)
                         {
@@ -213,6 +224,12 @@ namespace PolygonEditor
             canvas.Invalidate();
         }
 
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // KEY EVENTS 
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+
         private void Main_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Delete)
@@ -224,6 +241,12 @@ namespace PolygonEditor
                 AddNewVertex();
             }
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // BUTTONS -> ADD AND REMOVE VERTICES 
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
 
         private void buttonRemoveVertex_Click(object sender, EventArgs e)
         {
@@ -237,6 +260,33 @@ namespace PolygonEditor
             buttonAddVertex.Enabled = false;
         }
 
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // RADIO BUTTONS -> RESTRICTIONS ON LINES 
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+        
+        private List<RadioButton> radioRestrs = [];
+        private void PolluteRadioRestrs()
+        {
+            radioRestrs.EnsureCapacity(4);
+            radioRestrs.Add(radioRestrNoRestr);
+            radioRestrs.Add(radioRestrHorizontal);
+            radioRestrs.Add(radioRestrVertical);
+            radioRestrs.Add(radioRestrConst);
+        }
+        private void EnableRadioRestrictions(bool state = true)
+        {
+            foreach (var radioRestr in radioRestrs)
+                radioRestr.Enabled = state;
+        }
+        private void UncheckRadioRestrictions()
+        {
+            foreach (var radioRestr in radioRestrs)
+                radioRestr.Checked = false;
+        }
+
         private Dictionary<RadioButton, Line.LineRestriction> radioRestrLineRestr = new() { };
         private void PolluteRadioRestrLineRestr()
         {
@@ -244,6 +294,15 @@ namespace PolygonEditor
             radioRestrLineRestr.Add(radioRestrHorizontal, Line.LineRestriction.Horizontal);
             radioRestrLineRestr.Add(radioRestrVertical, Line.LineRestriction.Vertical);
             radioRestrLineRestr.Add(radioRestrConst, Line.LineRestriction.ConstantLength);
+        }
+        private void UncheckRadioRestrictionsButOne(RadioButton radioRestrOn)
+        {
+            foreach (var radioRestr in radioRestrs)
+            {
+                if (radioRestr == radioRestrOn)
+                    continue;
+                radioRestr.Checked = false;
+            }
         }
         private void radioRestr_CheckedChanged(object sender, EventArgs e)
         {
@@ -253,6 +312,7 @@ namespace PolygonEditor
             selectedP!.selectedLine!.Restriction = radioRestrLineRestr[radioRestr];
             UncheckRadioRestrictionsButOne(radioRestr);
         }
+
         private void buttonLineToBezier_Click(object sender, EventArgs e)
         {
             selectedP.ConvertLineToBezier();
@@ -262,6 +322,64 @@ namespace PolygonEditor
             buttonLineToBezier.Enabled = false;
             canvas.Invalidate();
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // RADIO BUTTONS -> RESTRICTIONS ON VERTICES
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+
+        private List<RadioButton> radioCons = new();
+        private void PolluteRadioCons()
+        {
+            radioCons.Add(radioConG0);
+            radioCons.Add(radioConG1);
+            radioCons.Add(radioConC1);
+        }
+
+        private Dictionary<RadioButton, Vertex.Continuity> radioConVertexCon = new() { };
+        private void PolluteRadioConVertexCon()
+        {
+            radioConVertexCon.Add(radioConG0, Vertex.Continuity.G0);
+            radioConVertexCon.Add(radioConG1, Vertex.Continuity.G1);
+            radioConVertexCon.Add(radioConC1, Vertex.Continuity.C1);
+        }
+        private void UncheckRadioConsButOne(RadioButton radioConOn) 
+        {
+            foreach(var radioCon in radioCons)
+            {
+                if (radioConOn == radioCon)
+                    continue;
+                radioCon.Checked = false;
+            }
+        }
+        private void UncheckRadioCons() 
+        {
+            foreach (var radioCon in radioCons)
+                radioCon.Checked = false;
+        }
+
+        private void EnableRadioCons(bool state = true)
+        {
+            foreach (var radioCon in radioCons)
+                radioCon.Enabled = state;
+        }
+
+        private void radioCon_CheckedChanged(object sender, EventArgs e)
+        {
+            RadioButton radioCon = (RadioButton)sender;
+            if (radioCon.Checked == false)
+                return;
+            selectedP!.selectedVertex!.ContinuityType = radioConVertexCon[radioCon];
+            UncheckRadioConsButOne(radioCon);
+        }
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // RADIO BUTTONS -> DRAWING ALGORITHM
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
+
         private void radioAlgLib_CheckedChanged(object sender, EventArgs e)
         {
             RadioButton r = (RadioButton)sender;
@@ -281,6 +399,12 @@ namespace PolygonEditor
                 libraryDrawing = false;
             }
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        //                                                                       //
+        // NEW POLYGON BUTTONS
+        //                                                                       //
+        ///////////////////////////////////////////////////////////////////////////
 
         private void buttonNewPolygon_Click(object sender, EventArgs e)
         {

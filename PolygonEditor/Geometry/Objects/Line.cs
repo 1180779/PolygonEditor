@@ -33,6 +33,8 @@ namespace PolygonEditor.Geometry.Objects
                     R = Geometry.Dist(A, B);
                 }
                 _restriction = value;
+                A.NotifyPropertyChanged();
+                B.NotifyPropertyChanged();
             }
         }
         public Point2 Middle
@@ -153,6 +155,9 @@ namespace PolygonEditor.Geometry.Objects
             bLine.AP2 = new BezierControlLine(A, bLine.P2);
             bLine.P2P3 = new BezierControlLine(bLine.P2, bLine.P3);
             bLine.P3B = new BezierControlLine(bLine.P3, B);
+            A.Next = bLine;
+            B.Prev = bLine;
+
             bLine.Init();
             return bLine;
         }

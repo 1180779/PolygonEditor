@@ -36,6 +36,19 @@ namespace PolygonEditor.Geometry
         {
             return A.X * B.X + A.Y * B.Y;
         }
+
+        // https://www.sunshine2k.de/coding/java/PointOnLine/PointOnLine.html
+        public static Point2 ProjectPointOntoLine(Point2 p, Point2 v1, Point2 v2)
+        {
+            Point2 e1 = v2 - v1;
+            Point2 e2 = p - v1;
+            float valDp = DotProduct(e1, e2);
+            float lenLineE1 = DotProduct(e1, e1);
+            float lenLineE2 = DotProduct(e2, e2);
+            float cos = valDp / (lenLineE1 * lenLineE2);
+            float projLenOfLine = cos * lenLineE2;
+            return v1 + (Vec2) ((projLenOfLine * (Vec2f) e1) / lenLineE2);
+        }
         public static int Dist2(Point2 A, Line L)
         {
             if (L.A == null || L.B == null)

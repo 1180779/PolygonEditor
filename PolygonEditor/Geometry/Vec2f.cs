@@ -25,6 +25,7 @@ namespace PolygonEditor.Geometry
         public static Vec2f operator *(Vec2f v, int n) { return n * v; }
 
         public static Vec2f operator /(Vec2f v, int d) { return new Vec2f(v.X / d, v.Y / d); }
+        public static Vec2f operator /(Vec2f v, float f) { return new Vec2f(v.X / f, v.Y / f); }
 
         public static Vec2f operator *(float f, Vec2f v) { return new Vec2f(f * v.X, f * v.Y); }
         public static Vec2f operator *(Vec2f v, float f) { return f * v; }

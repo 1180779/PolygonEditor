@@ -9,6 +9,12 @@ namespace PolygonEditor.Geometry.Objects
 {
     public class BezierLine : Line
     {
+        bool validState = false;
+
+        Point2 LastAPrev;
+        Point2 LastA;
+        Point2 LastB;
+        Point2 LastBNext;
         public static readonly Pen controlLinePen = new Pen(Color.Blue);
         static BezierLine()
         {
@@ -46,15 +52,27 @@ namespace PolygonEditor.Geometry.Objects
         }
         public void Init()
         {
+            if (validState)
+                return;
+            validState = true;
+
             Vertices.Add(A);
             Vertices.Add(P2);
             Vertices.Add(P3);
             Vertices.Add(B);
 
+            LastAPrev = A.Prev.A.Point;
+            LastA = A.Point;
+            LastB = B.Point;
+            LastBNext = B.Next.B.Point;
+
             A.PropertyChanged += VertexChangedPos;
             B.PropertyChanged += VertexChangedPos;
             P2.PropertyChanged += VertexChangedPos;
             P3.PropertyChanged += VertexChangedPos;
+
+            A.Prev.A.PropertyChanged += ConVertexChangePos;
+            B.Next.B.PropertyChanged += ConVertexChangePos;
 
             Vec2 v = B.Point - A.Point;
             Vec2 w = new Vec2(-v.Y, v.X);
@@ -64,12 +82,23 @@ namespace PolygonEditor.Geometry.Objects
             FindApproximation();
         }
 
-        public void Destroy()
+        public void Clear()
         {
+            if (!validState)
+                return;
+            validState = false;
+
+            Vertices.Clear();
+
             A.PropertyChanged -= VertexChangedPos;
             B.PropertyChanged -= VertexChangedPos;
             P2.PropertyChanged -= VertexChangedPos;
             P3.PropertyChanged -= VertexChangedPos;
+
+            A.Prev.A.PropertyChanged -= ConVertexChangePos;
+            B.Next.B.PropertyChanged -= ConVertexChangePos;
+
+            Approximation.Clear();
         }
         public BezierControlVertex? P2 { get; set; }
         public BezierControlVertex? P3 { get; set; }
@@ -142,18 +171,64 @@ namespace PolygonEditor.Geometry.Objects
 
         public override void Move(Vec2 v)
         {
-            if (selectedControlVertex != null)
+            if (selectedControlVertex == null)
             {
-                selectedControlVertex.Move(v);
+                // move one of the control points 
+                // and chandle the necessary changes
+                base.Move(v);
+                if (P2 == null || P3 == null)
+                    throw new InvalidOperationException();
+                P2.Move(v);
+                P3.Move(v);
                 return;
             }
-            // move one of the control points 
-            // and chandle the necessary changes
-            base.Move(v);
-            if (P2 == null || P3 == null)
-                throw new InvalidOperationException();
-            P2.Move(v);
-            P3.Move(v);
+
+            BezierControlVertex otherControlVertex = selectedControlVertex == P2 ? P3 : P2;
+            otherControlVertex.Lock();
+            A.Lock();
+            B.Lock();
+            selectedControlVertex.MoveLockUnlockLater(v);
+            
+            // handle continuity on vertecies adjecend to bezier lin
+            if(selectedControlVertex == P2)
+            {
+                if (A.ContinuityType == Vertex.Continuity.G0) { }
+                else if (A.ContinuityType == Vertex.Continuity.G1)
+                {
+                    Vertex u = A.Prev.A;
+                    Point2 p = u.Point;
+                    u.Point = (Geometry.ProjectPointOntoLine(u.Point, A.Point, P2.Point));
+                    if (u.X < -100000 || u.Y < -100000)
+                        throw new Exception();
+                }
+                else if(A.ContinuityType == Vertex.Continuity.C1)
+                {
+                    Vertex u = A.Prev.A;
+                    Vec2 w = P2.Point - A.Point;
+                    u.Point = A.Point - 3 * w;
+                }
+            }
+            else
+            {
+                if (B.ContinuityType == Vertex.Continuity.G0) { }
+                else if(B.ContinuityType == Vertex.Continuity.G1)
+                {
+                    Vertex u = B.Next.B;
+                    u.Point = (Geometry.ProjectPointOntoLine(u.Point, P3.Point, B.Point));
+                    if (u.X < -100000 || u.Y < -100000)
+                        throw new Exception();
+                }
+                else if (B.ContinuityType == Vertex.Continuity.C1)
+                {
+                    Vertex u = B.Next.B;
+                    Vec2 w = P3.Point - B.Point;
+                    u.Point = B.Point - 3 * w;
+                }
+            }
+            selectedControlVertex.Unlock();
+            otherControlVertex.Unlock();
+            A.Unlock();
+            B.Unlock();
         }
         public void MoveInPolygon(Vec2 v)
         {
@@ -190,7 +265,88 @@ namespace PolygonEditor.Geometry.Objects
 
         public override void VertexChangedPos(object? sender, PropertyChangedEventArgs e)
         {
+            Vertex v = (Vertex)sender;
+            if (v == A)
+            {
+                Point2 tempA = LastA;
+                LastA = A.Point;
+                if (A.ContinuityType == Vertex.Continuity.G0) { }
+                if (A.ContinuityType == Vertex.Continuity.G1)
+                {
+                    Vec2 u = A.Point - tempA;
+                    A.Prev.A.Move(u);
+                    P2.MoveLock(u);
+                }
+                else if(A.ContinuityType == Vertex.Continuity.C1)
+                {
+                    Vertex.MoveLockDelayNotify(A.Prev.A, P2, A.Point - tempA);
+                }
+            }
+            else if (v == B) 
+            {
+                Point2 tempB = LastB;
+                LastB = B.Point;
+                if (B.ContinuityType == Vertex.Continuity.G0) { }
+                else if (B.ContinuityType == Vertex.Continuity.G1)
+                {
+                    Vec2 u = B.Point - tempB;
+                    B.Next.B.MoveLockForce(u);
+                    P3.MoveLock(u);
+                }
+                else if(B.ContinuityType == Vertex.Continuity.C1)
+                {
+                    Vertex.MoveLockDelayNotify(B.Next.B, P3, B.Point - tempB);
+                }
+            }
+            LastAPrev = A.Prev.A.Point;
+            LastA = A.Point;
+            LastB = B.Point;
+            LastBNext = B.Next.B.Point;
             FindApproximation();
+        }
+
+        public void ConVertexChangePos(object? sender, PropertyChangedEventArgs e) 
+        {
+            Vertex v = (Vertex)sender;
+            if (v == A.Prev.A)
+            {
+                if (A.ContinuityType == Vertex.Continuity.G0) { }
+                else if (A.ContinuityType == Vertex.Continuity.G1)
+                {
+                    Vec2 u = A.Prev.A.Point - LastAPrev;
+                    A.MoveNoNotify(u);
+                    P2.MoveLock(u);
+                }
+                else if (A.ContinuityType == Vertex.Continuity.C1)
+                {
+                    Vertex u = A.Prev.A;
+                    Vec2 w = u.Point - A.Point;
+                    P2.Point = A.Point - w / 3;
+                }
+            }
+            else if (v == B.Next.B)
+            {
+                if (B.ContinuityType == Vertex.Continuity.G0) { }
+                else if (B.ContinuityType == Vertex.Continuity.G1)
+                {
+                    Vec2 u = B.Next.B.Point - LastBNext;
+                    B.MoveNoNotify(u);
+                    P3.MoveLock(u);
+                    //B.Move(u);
+                }
+                else if (B.ContinuityType == Vertex.Continuity.C1)
+                {
+                    Vertex u = B.Next.B;
+                    Vec2 w = u.Point - B.Point;
+                    P3.Point = B.Point - w / 3;
+                }
+            }
+            else
+                throw new InvalidOperationException();
+            LastAPrev = A.Prev.A.Point;
+            LastA = A.Point;
+            LastB = B.Point;
+            LastBNext = B.Next.B.Point;
         }
     }
 }

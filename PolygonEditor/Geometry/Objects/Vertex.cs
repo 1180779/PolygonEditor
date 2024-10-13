@@ -12,17 +12,38 @@ namespace PolygonEditor.Geometry.Objects
 {
     public class Vertex : MovableItem, INotifyPropertyChanged
     {
-        public bool Locked { get; private set; } = false;
-        private void Lock() { Locked = true; }
-        private void Unclock() { Locked = false; }
+        public bool Locked { get; set; } = false;
+        public void Lock() { Locked = true; }
+        public void Unlock() { Locked = false; }
 
 
-        public const int MAXDEPTH = 100;
-        public const int MAXITERATIONS = 10000;
+        public enum Continuity { G0, G1, C1 };
+        private Continuity _continuity = Continuity.G0;
+        public Continuity ContinuityType
+        {
+            get { return _continuity; }
+            set {
+                if (_continuity != value) 
+                {
+                    _continuity = value;
+                    Prev.A.NotifyPropertyChanged();
+                    Next.B.NotifyPropertyChanged();
+                }
+            }
+        }
+        public bool HasOneBezier { get { return (_prev is BezierLine && _next is not BezierLine) 
+                    || (_prev is not BezierLine && _next is BezierLine); } }
+
+
+        public const int MAXDEPTH = 10;
+        public const int MAXITERATIONS = 25;
         public int Depth { get; private set; } = 0;
         public int Iterations { get; private set; } = 0;
         protected const int RADIUS = 5;
-        private void NotifyPropertyChanged()
+        
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void NotifyPropertyChanged()
         {
             if (Depth == 0)
                 Iterations = 0;
@@ -34,12 +55,8 @@ namespace PolygonEditor.Geometry.Objects
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(""));
             }
             Depth--;
-
         }
-
-
         private Point2 _point;
-        public event PropertyChangedEventHandler? PropertyChanged;
         public Point2 Point
         {
             get { return _point; }
@@ -154,15 +171,33 @@ namespace PolygonEditor.Geometry.Objects
             g.DrawEllipse(p, X - RADIUS, Y - RADIUS, RADIUS * 2, RADIUS * 2);
         }
 
-        public void MoveLock(Vec2 v)
+        public void MoveLock(Vec2 v) 
+        {
+            if (Locked)
+                return;
+            Lock();
+            _point += v;
+            NotifyPropertyChanged();
+            Unlock();
+        }
+        public void MoveLockForce(Vec2 v)
+        {
+            MoveLockUnlockLater(v);
+            Unlock();
+        }
+        public void MoveLockUnlockLater(Vec2 v)
         {
             Lock();
             _point += v;
             NotifyPropertyChanged();
-            Unclock();
         }
         public override void Move(Vec2 v) => Point += v;
-        public void MoveNoNotify(Vec2 v) => _point += v;
+        public void MoveNoNotify(Vec2 v) 
+        {
+            if(!Locked)
+                _point += v;
+        } 
+
 
         //
         //
@@ -185,8 +220,8 @@ namespace PolygonEditor.Geometry.Objects
             B.Lock();
             A.NotifyPropertyChanged();
             B.NotifyPropertyChanged();
-            A.Unclock();
-            B.Unclock();
+            A.Unlock();
+            B.Unlock();
         }
 
     }
