@@ -11,10 +11,8 @@ namespace PolygonEditor.Geometry.Objects
     {
         bool validState = false;
 
-        Point2 LastAPrev;
         Point2 LastA;
         Point2 LastB;
-        Point2 LastBNext;
         public static readonly Pen controlLinePen = new Pen(Color.Blue);
         static BezierLine()
         {
@@ -61,15 +59,11 @@ namespace PolygonEditor.Geometry.Objects
             Vertices.Add(P3);
             Vertices.Add(B);
 
-            LastAPrev = A.Prev.A.Point;
             LastA = A.Point;
             LastB = B.Point;
-            LastBNext = B.Next.B.Point;
 
-            A.PropertyChanged += VertexChangedPos;
-            B.PropertyChanged += VertexChangedPos;
-            P2.PropertyChanged += VertexChangedPos;
-            P3.PropertyChanged += VertexChangedPos;
+            //A.PropertyChanged += VertexChangedPos;
+            //B.PropertyChanged += VertexChangedPos;
 
             A.Prev.A.PropertyChanged += ConVertexChangePos;
             B.Next.B.PropertyChanged += ConVertexChangePos;
@@ -90,10 +84,8 @@ namespace PolygonEditor.Geometry.Objects
 
             Vertices.Clear();
 
-            A.PropertyChanged -= VertexChangedPos;
-            B.PropertyChanged -= VertexChangedPos;
-            P2.PropertyChanged -= VertexChangedPos;
-            P3.PropertyChanged -= VertexChangedPos;
+            //A.PropertyChanged -= VertexChangedPos;
+            //B.PropertyChanged -= VertexChangedPos;
 
             A.Prev.A.PropertyChanged -= ConVertexChangePos;
             B.Next.B.PropertyChanged -= ConVertexChangePos;
@@ -173,13 +165,7 @@ namespace PolygonEditor.Geometry.Objects
         {
             if (selectedControlVertex == null)
             {
-                // move one of the control points 
-                // and chandle the necessary changes
-                base.Move(v);
-                if (P2 == null || P3 == null)
-                    throw new InvalidOperationException();
-                P2.Move(v);
-                P3.Move(v);
+
                 return;
             }
 
@@ -196,10 +182,12 @@ namespace PolygonEditor.Geometry.Objects
                 else if (A.ContinuityType == Vertex.Continuity.G1)
                 {
                     Vertex u = A.Prev.A;
-                    Point2 p = u.Point;
-                    u.Point = (Geometry.ProjectPointOntoLine(u.Point, A.Point, P2.Point));
-                    if (u.X < -100000 || u.Y < -100000)
-                        throw new Exception();
+                    if(!Geometry.PointsInLine(u.Point, P2.Point, A.Point)) 
+                    {
+                        u.Point = (Geometry.ProjectPointOntoLine(u.Point, P2.Point, A.Point));
+                        if (u.X < -100000 || u.Y < -100000)
+                            throw new Exception();
+                    }
                 }
                 else if(A.ContinuityType == Vertex.Continuity.C1)
                 {
@@ -214,9 +202,12 @@ namespace PolygonEditor.Geometry.Objects
                 else if(B.ContinuityType == Vertex.Continuity.G1)
                 {
                     Vertex u = B.Next.B;
-                    u.Point = (Geometry.ProjectPointOntoLine(u.Point, P3.Point, B.Point));
-                    if (u.X < -100000 || u.Y < -100000)
-                        throw new Exception();
+                    if (!Geometry.PointsInLine(u.Point, B.Point, P3.Point))
+                    { 
+                        u.Point = (Geometry.ProjectPointOntoLine(u.Point, P3.Point, B.Point));
+                        if (u.X < -100000 || u.Y < -100000)
+                            throw new Exception();
+                    }
                 }
                 else if (B.ContinuityType == Vertex.Continuity.C1)
                 {
@@ -273,35 +264,31 @@ namespace PolygonEditor.Geometry.Objects
                 if (A.ContinuityType == Vertex.Continuity.G0) { }
                 if (A.ContinuityType == Vertex.Continuity.G1)
                 {
-                    Vec2 u = A.Point - tempA;
-                    A.Prev.A.Move(u);
-                    P2.MoveLock(u);
+                    A.Prev.A.Point = Geometry.ProjectPointOntoLine(A.Prev.A.Point, A.Point, P2.Point);
                 }
-                else if(A.ContinuityType == Vertex.Continuity.C1)
+                else if (A.ContinuityType == Vertex.Continuity.C1)
                 {
                     Vertex.MoveLockDelayNotify(A.Prev.A, P2, A.Point - tempA);
                 }
             }
-            else if (v == B) 
+            else if (v == B)
             {
                 Point2 tempB = LastB;
                 LastB = B.Point;
                 if (B.ContinuityType == Vertex.Continuity.G0) { }
                 else if (B.ContinuityType == Vertex.Continuity.G1)
                 {
-                    Vec2 u = B.Point - tempB;
-                    B.Next.B.MoveLockForce(u);
-                    P3.MoveLock(u);
+                    B.Next.B.Point = Geometry.ProjectPointOntoLine(B.Next.B.Point, P3.Point, B.Point);
                 }
-                else if(B.ContinuityType == Vertex.Continuity.C1)
+                else if (B.ContinuityType == Vertex.Continuity.C1)
                 {
                     Vertex.MoveLockDelayNotify(B.Next.B, P3, B.Point - tempB);
                 }
             }
-            LastAPrev = A.Prev.A.Point;
+            else
+                throw new InvalidOperationException();
             LastA = A.Point;
             LastB = B.Point;
-            LastBNext = B.Next.B.Point;
             FindApproximation();
         }
 
@@ -313,9 +300,10 @@ namespace PolygonEditor.Geometry.Objects
                 if (A.ContinuityType == Vertex.Continuity.G0) { }
                 else if (A.ContinuityType == Vertex.Continuity.G1)
                 {
-                    Vec2 u = A.Prev.A.Point - LastAPrev;
-                    A.MoveNoNotify(u);
-                    P2.MoveLock(u);
+                    if(!Geometry.PointsInLine(P2.Point, A.Point, v.Point))
+                    {
+                        P2.Point = Geometry.ProjectPointOntoLine(P2.Point, A.Point, v.Point);
+                    }
                 }
                 else if (A.ContinuityType == Vertex.Continuity.C1)
                 {
@@ -329,10 +317,10 @@ namespace PolygonEditor.Geometry.Objects
                 if (B.ContinuityType == Vertex.Continuity.G0) { }
                 else if (B.ContinuityType == Vertex.Continuity.G1)
                 {
-                    Vec2 u = B.Next.B.Point - LastBNext;
-                    B.MoveNoNotify(u);
-                    P3.MoveLock(u);
-                    //B.Move(u);
+                    if (!Geometry.PointsInLine(v.Point, A.Point, B.Point))
+                    {
+                        P3.Point = Geometry.ProjectPointOntoLine(P3.Point, v.Point, B.Point);
+                    }
                 }
                 else if (B.ContinuityType == Vertex.Continuity.C1)
                 {
@@ -343,10 +331,17 @@ namespace PolygonEditor.Geometry.Objects
             }
             else
                 throw new InvalidOperationException();
-            LastAPrev = A.Prev.A.Point;
             LastA = A.Point;
             LastB = B.Point;
-            LastBNext = B.Next.B.Point;
+        }
+
+        public Line BezierToLine()
+        {
+            Clear();
+            Line l = new Line(A, B);
+            A.Next = l;
+            B.Prev = l;
+            return l;
         }
     }
 }

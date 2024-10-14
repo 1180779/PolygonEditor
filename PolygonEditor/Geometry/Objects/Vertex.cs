@@ -57,6 +57,18 @@ namespace PolygonEditor.Geometry.Objects
             Depth--;
         }
         private Point2 _point;
+        public Point2 PointLocked {  
+            get { return _point; } 
+            set
+            {
+                if (Locked)
+                    return;
+                Lock();
+                _point = value;
+                NotifyPropertyChanged();
+                Unlock();
+            }
+        }
         public Point2 Point
         {
             get { return _point; }
@@ -180,13 +192,10 @@ namespace PolygonEditor.Geometry.Objects
             NotifyPropertyChanged();
             Unlock();
         }
-        public void MoveLockForce(Vec2 v)
-        {
-            MoveLockUnlockLater(v);
-            Unlock();
-        }
         public void MoveLockUnlockLater(Vec2 v)
         {
+            if (Locked)
+                return;
             Lock();
             _point += v;
             NotifyPropertyChanged();
@@ -198,31 +207,27 @@ namespace PolygonEditor.Geometry.Objects
                 _point += v;
         } 
 
-
-        //
-        //
-        //
-        //
-
-        public static void MoveDelayNotify(Vertex A, Vertex B, Vec2 v)
-        {
-            A._point += v;
-            B._point += v;
-            A.NotifyPropertyChanged();
-            B.NotifyPropertyChanged();
-        }
-
         public static void MoveLockDelayNotify(Vertex A, Vertex B, Vec2 v)
         {
-            A._point += v;
-            B._point += v;
-            A.Lock();
-            B.Lock();
-            A.NotifyPropertyChanged();
-            B.NotifyPropertyChanged();
-            A.Unlock();
-            B.Unlock();
+            if(!A.Locked && !B.Locked)
+            {
+                A.Lock();
+                B.Lock();
+                A._point += v;
+                B._point += v;
+                A.NotifyPropertyChanged();
+                B.NotifyPropertyChanged();
+                A.Unlock();
+                B.Unlock();
+            }
+            else if (!A.Locked)
+            {
+                A.MoveLock(v);
+            }
+            else
+            {
+                B.MoveLock(v);
+            }
         }
-
     }
 }

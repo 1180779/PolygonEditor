@@ -13,7 +13,8 @@ namespace PolygonEditor.Geometry.Objects
         {
             Center = center;
         }
-        public Polygon Generate(int n = 5, int R = 100)
+
+        public Polygon GenerateEquilateral(int n = 5, int R = 100)
         {
             float b = 360 / n;
             List<Vertex> vertices = new(n);
@@ -41,11 +42,27 @@ namespace PolygonEditor.Geometry.Objects
                 res.Lines.Add(lines[i]);
             }
 
+            res.ReconstructVerticesInOrder();
+            return res;
+        }
+
+        public Polygon GeneratePredefined()
+        {
+            Polygon res = GenerateEquilateral();
+            res.selectedLine = res.Lines[1];
+            res.ConvertLineToBezier();
+            res.Lines[2].Restriction = Line.LineRestriction.ConstantLength;
+            res.Lines[3].Restriction = Line.LineRestriction.Horizontal;
+            return res;
+        }
+
+        public Polygon Generate(int n = 5, int R = 100)
+        {
+            Polygon res = GenerateEquilateral();
+
             int bLineIdx = Random.Shared.Next(n);
             res.selectedLine = res.Lines[bLineIdx];
             res.ConvertLineToBezier();
-
-            res.ReconstructVerticesInOrder();
             return res;
         }
     }

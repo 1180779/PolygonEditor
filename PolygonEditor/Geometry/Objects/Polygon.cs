@@ -183,7 +183,7 @@ namespace PolygonEditor.Geometry.Objects
 
         public void MoveItem(Vec2 v)
         {
-            selectedVertex?.MoveLockForce(v);
+            selectedVertex?.MoveLock(v);
             selectedLine?.Move(v);
             selectedBezierLine?.Move(v);
         }
@@ -200,9 +200,9 @@ namespace PolygonEditor.Geometry.Objects
         {
             if (selectedVertex == null)
                 return false;
-
             if (Vertices.Count == 3)
                 return false;
+
             Vertex vprev = selectedVertex!.Prev!.A!;
             Vertex vnext = selectedVertex!.Next!.B!;
             selectedVertex.Prev.B = vnext;
@@ -215,7 +215,9 @@ namespace PolygonEditor.Geometry.Objects
             Vertices.Remove(selectedVertex);
             if(selectedVertex.Prev is BezierLine)
             {
-                if(!BezierLines.Remove((BezierLine)selectedVertex.Prev))
+                BezierLine bLine = (BezierLine)selectedVertex.Prev;
+                bLine.Clear();
+                if (!BezierLines.Remove(bLine))
                     throw new Exception();
             }
             else
@@ -225,7 +227,9 @@ namespace PolygonEditor.Geometry.Objects
             }
             if (selectedVertex.Next is BezierLine)
             {
-                if (!BezierLines.Remove((BezierLine)selectedVertex.Next))
+                BezierLine bLine = (BezierLine)selectedVertex.Next;
+                bLine.Clear();
+                if (!BezierLines.Remove(bLine))
                     throw new Exception();
             }
             else
@@ -233,6 +237,20 @@ namespace PolygonEditor.Geometry.Objects
                 if (!Lines.Remove(selectedVertex.Next))
                 throw new Exception();
             }
+
+            //if(selectedVertex.Prev.A.Prev is BezierLine)
+            //{
+            //    BezierLine bLine = (BezierLine)selectedVertex.Prev.A.Prev;
+            //    selectedVertex.PropertyChanged -= bLine.ConVertexChangePos;
+            //    selectedVertex.Next.B.PropertyChanged += bLine.ConVertexChangePos;
+            //}
+            //if(selectedVertex.Next.B.Next is BezierLine)
+            //{
+            //    BezierLine bLine = (BezierLine)selectedVertex.Next.B.Next;
+            //    selectedVertex.PropertyChanged -= bLine.ConVertexChangePos;
+            //    selectedVertex.Prev.A.PropertyChanged += bLine.ConVertexChangePos;
+            //}
+
             Lines.Add(l);
             selectedVertex = null;
             ReconstructVerticesInOrder();
@@ -278,7 +296,8 @@ namespace PolygonEditor.Geometry.Objects
 
         public void ConvertLineToBezier()
         {
-            if (selectedLine == null) return;
+            if (selectedLine == null) 
+                return;
             BezierLine bLine = selectedLine.ConvertToBezierLine();
             BezierLines.Add(bLine);
             Lines.Remove(selectedLine);
@@ -291,8 +310,21 @@ namespace PolygonEditor.Geometry.Objects
             selectedLine = null;
         }
 
-        // https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
-        // Function to check if a point is inside a polygon
+        public void ConvertBezierToLine()
+        {
+            if(selectedBezierLine == null) 
+                return;
+            Line l = selectedBezierLine.BezierToLine();
+            Lines.Add(l);
+            BezierLines.Remove(selectedBezierLine);
+
+            selectedBezierLine.A.ContinuityType = Vertex.Continuity.G0;
+            selectedBezierLine.B.ContinuityType = Vertex.Continuity.G0;
+            
+            selectedBezierLine = null;
+        }
+
+        
         private bool PointInPolygon(Point2 p) => Geometry.PointInPolygon(p, VerticesInOrder);
     }
 }

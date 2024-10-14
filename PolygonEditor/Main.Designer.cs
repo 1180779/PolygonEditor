@@ -59,6 +59,7 @@
             label2 = new Label();
             textBoxVerteciesC = new TextBox();
             buttonRemovePolygon = new Button();
+            buttonBezierToLine = new Button();
             menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)canvas).BeginInit();
             controlCenter.SuspendLayout();
@@ -105,7 +106,7 @@
             canvas.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
             canvas.Location = new Point(0, 27);
             canvas.Name = "canvas";
-            canvas.Size = new Size(749, 419);
+            canvas.Size = new Size(749, 442);
             canvas.TabIndex = 2;
             canvas.TabStop = false;
             canvas.Paint += canvas_Paint;
@@ -121,7 +122,7 @@
             controlCenter.Location = new Point(755, 27);
             controlCenter.Name = "controlCenter";
             controlCenter.SelectedIndex = 0;
-            controlCenter.Size = new Size(131, 419);
+            controlCenter.Size = new Size(131, 442);
             controlCenter.TabIndex = 3;
             // 
             // tabPage1
@@ -132,7 +133,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(123, 391);
+            tabPage1.Size = new Size(123, 414);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "Edycja";
             tabPage1.UseVisualStyleBackColor = true;
@@ -142,7 +143,7 @@
             groupBox2.Controls.Add(radioConC1);
             groupBox2.Controls.Add(radioConG1);
             groupBox2.Controls.Add(radioConG0);
-            groupBox2.Location = new Point(3, 294);
+            groupBox2.Location = new Point(3, 317);
             groupBox2.Name = "groupBox2";
             groupBox2.Size = new Size(117, 94);
             groupBox2.TabIndex = 6;
@@ -190,6 +191,7 @@
             // 
             // relations
             // 
+            relations.Controls.Add(buttonBezierToLine);
             relations.Controls.Add(buttonLineToBezier);
             relations.Controls.Add(radioRestrConst);
             relations.Controls.Add(radioRestrVertical);
@@ -197,17 +199,18 @@
             relations.Controls.Add(radioRestrNoRestr);
             relations.Location = new Point(3, 148);
             relations.Name = "relations";
-            relations.Size = new Size(117, 140);
+            relations.Size = new Size(117, 170);
             relations.TabIndex = 5;
             relations.TabStop = false;
             relations.Text = "ograniczenia";
             // 
             // buttonLineToBezier
             // 
-            buttonLineToBezier.Location = new Point(0, 113);
+            buttonLineToBezier.Enabled = false;
+            buttonLineToBezier.Location = new Point(6, 113);
             buttonLineToBezier.Margin = new Padding(3, 2, 3, 2);
             buttonLineToBezier.Name = "buttonLineToBezier";
-            buttonLineToBezier.Size = new Size(112, 22);
+            buttonLineToBezier.Size = new Size(106, 22);
             buttonLineToBezier.TabIndex = 4;
             buttonLineToBezier.Text = "bezier";
             buttonLineToBezier.UseVisualStyleBackColor = true;
@@ -412,11 +415,22 @@
             buttonRemovePolygon.UseVisualStyleBackColor = true;
             buttonRemovePolygon.Click += buttonRemovePolygon_Click;
             // 
+            // buttonBezierToLine
+            // 
+            buttonBezierToLine.Enabled = false;
+            buttonBezierToLine.Location = new Point(6, 140);
+            buttonBezierToLine.Name = "buttonBezierToLine";
+            buttonBezierToLine.Size = new Size(105, 23);
+            buttonBezierToLine.TabIndex = 5;
+            buttonBezierToLine.Text = "linia";
+            buttonBezierToLine.UseVisualStyleBackColor = true;
+            buttonBezierToLine.Click += buttonBezierToLine_Click;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(886, 450);
+            ClientSize = new Size(886, 473);
             Controls.Add(controlCenter);
             Controls.Add(canvas);
             Controls.Add(menuStrip1);
@@ -475,5 +489,6 @@
         private GroupBox groupBox3;
         private Label label2;
         private Button buttonLineToBezier;
+        private Button buttonBezierToLine;
     }
 }

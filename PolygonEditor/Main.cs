@@ -42,15 +42,9 @@ namespace PolygonEditor
 
             Point center = new(canvas.Width / 2, canvas.Height / 2);
             pFactory = new(center);
-            polygons.Add(pFactory.Generate());
+            polygons.Add(pFactory.GeneratePredefined());
             canvas.Invalidate();
         }
-        public static void TestSignal()
-        {
-            About a = new();
-            a.ShowDialog();
-        }
-
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -70,8 +64,7 @@ namespace PolygonEditor
                 return;
             if (!selectedP.RemoveVertex())
             {
-                // add new dialog 
-                TestSignal();
+                throw new Exception();
             }
             else
             {
@@ -152,6 +145,7 @@ namespace PolygonEditor
                 buttonRemoveVertex.Enabled = false;
                 buttonAddVertex.Enabled = false;
                 buttonLineToBezier.Enabled = false;
+                buttonBezierToLine.Enabled = false;
 
 
                 ML = e.Location;
@@ -193,6 +187,10 @@ namespace PolygonEditor
                                 radioRestrVertical.Checked = true;
                             else if (selectedP.selectedLine.Restriction == Line.LineRestriction.ConstantLength)
                                 radioRestrConst.Checked = true;
+                        }
+                        else if(selectedP.selectedBezierLine != null)
+                        {
+                            buttonBezierToLine.Enabled = true;
                         }
                         return;
                     }
@@ -266,7 +264,7 @@ namespace PolygonEditor
         // RADIO BUTTONS -> RESTRICTIONS ON LINES 
         //                                                                       //
         ///////////////////////////////////////////////////////////////////////////
-        
+
         private List<RadioButton> radioRestrs = [];
         private void PolluteRadioRestrs()
         {
@@ -323,6 +321,13 @@ namespace PolygonEditor
             canvas.Invalidate();
         }
 
+        private void buttonBezierToLine_Click(object sender, EventArgs e)
+        {
+            selectedP.ConvertBezierToLine();
+            selectedP = null;
+            buttonBezierToLine.Enabled = false;
+        }
+
         ///////////////////////////////////////////////////////////////////////////
         //                                                                       //
         // RADIO BUTTONS -> RESTRICTIONS ON VERTICES
@@ -344,16 +349,16 @@ namespace PolygonEditor
             radioConVertexCon.Add(radioConG1, Vertex.Continuity.G1);
             radioConVertexCon.Add(radioConC1, Vertex.Continuity.C1);
         }
-        private void UncheckRadioConsButOne(RadioButton radioConOn) 
+        private void UncheckRadioConsButOne(RadioButton radioConOn)
         {
-            foreach(var radioCon in radioCons)
+            foreach (var radioCon in radioCons)
             {
                 if (radioConOn == radioCon)
                     continue;
                 radioCon.Checked = false;
             }
         }
-        private void UncheckRadioCons() 
+        private void UncheckRadioCons()
         {
             foreach (var radioCon in radioCons)
                 radioCon.Checked = false;
@@ -408,7 +413,7 @@ namespace PolygonEditor
 
         private void buttonNewPolygon_Click(object sender, EventArgs e)
         {
-            polygons.Add(pFactory.Generate(int.Parse(textBoxVerteciesC.Text), int.Parse(textBoxRadius.Text)));
+            polygons.Add(pFactory.GenerateEquilateral(int.Parse(textBoxVerteciesC.Text), int.Parse(textBoxRadius.Text)));
         }
 
         private void buttonRemovePolygon_Click(object sender, EventArgs e)

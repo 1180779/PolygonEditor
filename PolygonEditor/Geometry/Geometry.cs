@@ -1,6 +1,7 @@
 ﻿using PolygonEditor.Geometry.Objects;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,23 +33,22 @@ namespace PolygonEditor.Geometry
         }
 
 
-        public static int DotProduct(Point2 A, Point2 B)
+        public static int DotProduct(Vec2 A, Vec2 B)
         {
             return A.X * B.X + A.Y * B.Y;
         }
 
-        // https://www.sunshine2k.de/coding/java/PointOnLine/PointOnLine.html
-        public static Point2 ProjectPointOntoLine(Point2 p, Point2 v1, Point2 v2)
+        public static float DotProduct(Vec2f A, Vec2f B)
         {
-            Point2 e1 = v2 - v1;
-            Point2 e2 = p - v1;
-            float valDp = DotProduct(e1, e2);
-            float lenLineE1 = DotProduct(e1, e1);
-            float lenLineE2 = DotProduct(e2, e2);
-            float cos = valDp / (lenLineE1 * lenLineE2);
-            float projLenOfLine = cos * lenLineE2;
-            return v1 + (Vec2) ((projLenOfLine * (Vec2f) e1) / lenLineE2);
+            return A.X * B.X + A.Y * B.Y;
         }
+
+        // https://stackoverflow.com/questions/3813681/checking-to-see-if-3-points-are-on-the-same-line
+        public static bool PointsInLine(Point2 A, Point2 B, Point2 C, int tol = 25)
+        {
+            return Math.Abs(A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y)) <= tol;
+        }
+
         public static int Dist2(Point2 A, Line L)
         {
             if (L.A == null || L.B == null)
@@ -74,6 +74,28 @@ namespace PolygonEditor.Geometry
             float d = (float)Math.Sqrt(DotProduct(V, V));
             return new(C.X + (int)(V.X / d * R),
                             C.Y + (int)(V.Y / d * R));
+        }
+
+        // https://en.wikipedia.org/wiki/Vector_projection
+        public static Point2 ProjectPointOntoLine(Point2 P, Point2 A, Point2 B)
+        {
+            Vec2f AB = B - A;
+            Vec2f AP = P - A;
+            Vec2f projAP = (DotProduct(AP, AB) / DotProduct(AB, AB)) * AB;
+            Point2 res = (Point2) (A + projAP);
+            if (res.X < -10000)
+                throw new Exception();
+            return res;
+
+            // https://www.sunshine2k.de/coding/java/PointOnLine/PointOnLine.html
+            //Point2 e1 = v2 - v1;
+            //Point2 e2 = p - v1;
+            //float valDp = DotProduct(e1, e2);
+            //float lenLineE1 = (float)Math.Sqrt(DotProduct(e1, e1));
+            //float lenLineE2 = (float)Math.Sqrt(DotProduct(e2, e2));
+            //float cos = valDp / (lenLineE1 * lenLineE2);
+            //float projLenOfLine = cos * lenLineE2;
+            //return v1 + (Vec2) ((projLenOfLine * (Vec2f) e1) / lenLineE2);
         }
 
         // https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/

@@ -166,6 +166,7 @@ namespace PolygonEditor.Geometry.Objects
         // 
         // 
         // 
+
         public virtual void VertexChangedPos(object? sender, PropertyChangedEventArgs e)
         {
             if (A == null || B == null)
