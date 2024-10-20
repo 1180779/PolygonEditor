@@ -62,9 +62,6 @@ namespace PolygonEditor.Geometry.Objects
             LastA = A.Point;
             LastB = B.Point;
 
-            //A.PropertyChanged += VertexChangedPos;
-            //B.PropertyChanged += VertexChangedPos;
-
             A.Prev.A.PropertyChanged += ConVertexChangePos;
             B.Next.B.PropertyChanged += ConVertexChangePos;
 
@@ -83,9 +80,6 @@ namespace PolygonEditor.Geometry.Objects
             validState = false;
 
             Vertices.Clear();
-
-            //A.PropertyChanged -= VertexChangedPos;
-            //B.PropertyChanged -= VertexChangedPos;
 
             A.Prev.A.PropertyChanged -= ConVertexChangePos;
             B.Next.B.PropertyChanged -= ConVertexChangePos;
@@ -114,9 +108,7 @@ namespace PolygonEditor.Geometry.Objects
         public override void Draw(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
             for (int i = 0; i < Approximation.Count - 1; i++) 
-            {
                 MyDrawing.PlotLine(Approximation[i], Approximation[i + 1], dbitmap, p.Color);
-            }
             MyDrawing.PlotLine(Approximation[Approximation.Count - 1], B.Point, dbitmap, p.Color);
 
             AP2.Draw(dbitmap, g, controlLinePen, b);
@@ -128,20 +120,21 @@ namespace PolygonEditor.Geometry.Objects
             P2.Draw(dbitmap, g, p, b);
             P3.Draw(dbitmap, g, p, b);
         }
-        public override void DrawLibrary(Graphics g, Pen p, Brush b)
+        public override void DrawLibrary(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
-            if (A == null || P2 == null || P3 == null || B == null)
-                throw new InvalidOperationException();
+            //for (int i = 0; i < Approximation.Count - 1; i++)
+            //    g.DrawLine(p, Approximation[i], Approximation[i + 1]);
+            //g.DrawLine(p, Approximation[Approximation.Count - 1], B.Point);
             g.DrawBezier(p, A.Point, P2.Point, P3.Point, B.Point);
 
-            AP2.DrawLibrary(g, controlLinePen, b);
-            P2P3.DrawLibrary(g, controlLinePen, b);
-            P3B.DrawLibrary(g, controlLinePen, b);
+            AP2.DrawLibrary(dbitmap, g, controlLinePen, b);
+            P2P3.DrawLibrary(dbitmap, g, controlLinePen, b);
+            P3B.DrawLibrary(dbitmap, g, controlLinePen, b);
 
-            A.DrawLibrary(g, p, b);
-            B.DrawLibrary(g, p, b);
-            P2.DrawLibrary(g, p, b);
-            P3.DrawLibrary(g, p, b);
+            A.DrawLibrary(dbitmap, g, p, b);
+            B.DrawLibrary(dbitmap, g, p, b);
+            P2.DrawLibrary(dbitmap, g, p, b);
+            P3.DrawLibrary(dbitmap, g, p, b);
         }
         public override void DrawSelection(Graphics g, Pen p, Brush s)
         {
@@ -155,17 +148,20 @@ namespace PolygonEditor.Geometry.Objects
             DrawSelection(g, p, s);
             Draw(dbitmap, g, p, b);
         }
-        public override void DrawLibrarySelected(Graphics g, Pen p, Brush b, Brush s)
+        public override void DrawLibrarySelected(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
         {
             DrawSelection(g, p, s);
-            DrawLibrary(g, p, b);
+            DrawLibrary(dbitmap, g, p, b);
         }
 
         public override void Move(Vec2 v)
         {
             if (selectedControlVertex == null)
             {
-
+                base.Move(v);
+                P2.Move(v);
+                P3.Move(v);
+                FindApproximation();
                 return;
             }
 
@@ -185,8 +181,6 @@ namespace PolygonEditor.Geometry.Objects
                     if(!Geometry.PointsInLine(u.Point, P2.Point, A.Point)) 
                     {
                         u.Point = (Geometry.ProjectPointOntoLine(u.Point, P2.Point, A.Point));
-                        if (u.X < -100000 || u.Y < -100000)
-                            throw new Exception();
                     }
                 }
                 else if(A.ContinuityType == Vertex.Continuity.C1)
@@ -205,8 +199,6 @@ namespace PolygonEditor.Geometry.Objects
                     if (!Geometry.PointsInLine(u.Point, B.Point, P3.Point))
                     { 
                         u.Point = (Geometry.ProjectPointOntoLine(u.Point, P3.Point, B.Point));
-                        if (u.X < -100000 || u.Y < -100000)
-                            throw new Exception();
                     }
                 }
                 else if (B.ContinuityType == Vertex.Continuity.C1)
@@ -220,6 +212,7 @@ namespace PolygonEditor.Geometry.Objects
             otherControlVertex.Unlock();
             A.Unlock();
             B.Unlock();
+            FindApproximation();
         }
         public void MoveInPolygon(Vec2 v)
         {
@@ -227,6 +220,7 @@ namespace PolygonEditor.Geometry.Objects
                 throw new InvalidOperationException();
             P2.Move(v);
             P3.Move(v);
+            FindApproximation();
         }
 
         public bool IsSelectedItem(Point2 p)

@@ -83,19 +83,7 @@ namespace PolygonEditor.Geometry
             Vec2f AP = P - A;
             Vec2f projAP = (DotProduct(AP, AB) / DotProduct(AB, AB)) * AB;
             Point2 res = (Point2) (A + projAP);
-            if (res.X < -10000)
-                throw new Exception();
             return res;
-
-            // https://www.sunshine2k.de/coding/java/PointOnLine/PointOnLine.html
-            //Point2 e1 = v2 - v1;
-            //Point2 e2 = p - v1;
-            //float valDp = DotProduct(e1, e2);
-            //float lenLineE1 = (float)Math.Sqrt(DotProduct(e1, e1));
-            //float lenLineE2 = (float)Math.Sqrt(DotProduct(e2, e2));
-            //float cos = valDp / (lenLineE1 * lenLineE2);
-            //float projLenOfLine = cos * lenLineE2;
-            //return v1 + (Vec2) ((projLenOfLine * (Vec2f) e1) / lenLineE2);
         }
 
         // https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/

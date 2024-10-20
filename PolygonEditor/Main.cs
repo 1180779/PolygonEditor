@@ -12,12 +12,14 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using PolygonEditor.Geometry.Objects;
 
+using PolygonEditor.Geometry;
+
 namespace PolygonEditor
 {
     public partial class Main : Form
     {
         bool libraryDrawing = true;
-        bool moving = false; // moving item with left mouse button
+        bool moving = false; // moving mouse
         Polygon? selectedP = null; // selected polygon (item within polygon) with left mouse click
         PolygonFactory pFactory;
 
@@ -37,7 +39,7 @@ namespace PolygonEditor
             PolluteRadioCons();
             PolluteRadioConVertexCon();
 
-            drawArea = new DirectBitmap(canvas.Width, canvas.Height);
+            drawArea = new DirectBitmap(1920, 1080);
             canvas.Image = drawArea.Bitmap;
 
             Point center = new(canvas.Width / 2, canvas.Height / 2);
@@ -101,14 +103,14 @@ namespace PolygonEditor
             }
 
         }
-        private void DrawLibraryPolygons(Graphics g, Pen p, Brush b, Brush s)
+        private void DrawLibraryPolygons(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
         {
             foreach (var poly in polygons)
             {
                 if (poly == selectedP)
-                    poly.DrawLibrarySelected(g, p, b, s);
+                    poly.DrawLibrarySelected(dbitmap, g, p, b, s);
                 else
-                    poly.DrawLibrary(g, p, b);
+                    poly.DrawLibrary(dbitmap, g, p, b);
             }
         }
 
@@ -118,7 +120,7 @@ namespace PolygonEditor
             g.Clear(Color.White);
             Pen p = new(Color.Black);
             if (libraryDrawing)
-                DrawLibraryPolygons(g, p, Brushes.Black, Brushes.LightGreen);
+                DrawLibraryPolygons(drawArea, g, p, Brushes.Black, Brushes.LightGreen);
             else
                 DrawPolygons(drawArea, g, p, Brushes.Black, Brushes.LightGreen);
             p.Dispose();
@@ -140,6 +142,7 @@ namespace PolygonEditor
                 EnableRadioCons(false);
                 UncheckRadioCons();
 
+                moving = true;
 
                 // disable buttons
                 buttonRemoveVertex.Enabled = false;
@@ -151,14 +154,13 @@ namespace PolygonEditor
                 ML = e.Location;
                 foreach (var p in polygons)
                 {
-                    if (p.SelectedItem(ML) || p.IsSelected(ML))
+                    if (p.SelectedItem(ML) || p.IsSelected(ML)) // selected polygon or polygon part
                     {
                         // p is the selected polygon
                         selectedP = p;
-                        moving = true;
                         canvas.Invalidate();
 
-                        if (selectedP.selectedVertex != null)
+                        if (selectedP.selectedVertex != null) // selected vertex
                         {
                             buttonRemoveVertex.Enabled = true;
                             if (selectedP.selectedVertex.HasOneBezier)
@@ -172,7 +174,7 @@ namespace PolygonEditor
                                     radioConC1.Checked = true;
                             }
                         }
-                        else if (selectedP.selectedLine != null)
+                        else if (selectedP.selectedLine != null) // selected line
                         {
                             buttonAddVertex.Enabled = true;
 
@@ -188,29 +190,44 @@ namespace PolygonEditor
                             else if (selectedP.selectedLine.Restriction == Line.LineRestriction.ConstantLength)
                                 radioRestrConst.Checked = true;
                         }
-                        else if(selectedP.selectedBezierLine != null)
+                        else if(selectedP.selectedBezierLine != null) // selected bezier line
                         {
                             buttonBezierToLine.Enabled = true;
+                        }
+                        else // selected polygon
+                        {
+                            buttonRemovePolygon.Enabled = true;
                         }
                         return;
                     }
                 }
                 // no polygon selected
                 selectedP = null;
-                moving = false;
                 canvas.Invalidate();
             }
         }
 
+        private void MoveCanvas(Vec2 v)
+        {
+            foreach (var p in polygons)
+                p.Move(v);
+        }
 
         private void canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (selectedP == null || !moving)
+            if (!moving)
                 return;
-
+                
             PML = ML;
             ML = e.Location;
-            selectedP.MoveWHoleOrVertex(ML - PML);
+            if (selectedP == null)
+            {
+                MoveCanvas(ML - PML);
+            }
+            else
+            {
+                selectedP.MoveWHoleOrVertex(ML - PML);
+            }
             canvas.Invalidate();
         }
 
@@ -413,7 +430,19 @@ namespace PolygonEditor
 
         private void buttonNewPolygon_Click(object sender, EventArgs e)
         {
-            polygons.Add(pFactory.GenerateEquilateral(int.Parse(textBoxVerteciesC.Text), int.Parse(textBoxRadius.Text)));
+            int verticesCount;
+            int R;
+            try
+            {
+                verticesCount = int.Parse(textBoxVerteciesC.Text);
+                R = int.Parse(textBoxRadius.Text);
+                
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+            polygons.Add(pFactory.GenerateEquilateral(verticesCount, R));
         }
 
         private void buttonRemovePolygon_Click(object sender, EventArgs e)
@@ -423,6 +452,7 @@ namespace PolygonEditor
             {
                 polygons.Remove(selectedP);
                 selectedP = null;
+                buttonRemovePolygon.Enabled = false;
             }
         }
     }

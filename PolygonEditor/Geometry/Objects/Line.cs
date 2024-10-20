@@ -85,7 +85,7 @@ namespace PolygonEditor.Geometry.Objects
             MyDrawing.PlotLine(A.Point, B.Point, dbitmap, p.Color);
             DrawIcon(g);
         }
-        public override void DrawLibrary(Graphics g, Pen p, Brush b)
+        public override void DrawLibrary(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
             if (A == null || B == null)
                 throw new InvalidOperationException();
@@ -123,12 +123,12 @@ namespace PolygonEditor.Geometry.Objects
             DrawIcon(g);
         }
 
-        public override void DrawLibrarySelected(Graphics g, Pen p, Brush b, Brush s)
+        public override void DrawLibrarySelected(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
         {
             if (A == null || B == null)
                 throw new InvalidOperationException();
             DrawSelection(g, p, s);
-            DrawLibrary(g, p, b);
+            DrawLibrary(dbitmap, g, p, b);
             DrawIcon(g);
         }
 

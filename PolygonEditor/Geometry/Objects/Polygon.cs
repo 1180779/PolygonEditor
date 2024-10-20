@@ -73,14 +73,14 @@ namespace PolygonEditor.Geometry.Objects
             foreach (var item in Vertices)
                 item.Draw(dbitmap, g, p, b);
         }
-        public override void DrawLibrary(Graphics g, Pen p, Brush b)
+        public override void DrawLibrary(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
             foreach (var item in BezierLines)
-                item.DrawLibrary(g, p, b);
+                item.DrawLibrary(dbitmap, g, p, b);
             foreach (var item in Lines)
-                item.DrawLibrary(g, p, b);
+                item.DrawLibrary(dbitmap, g, p, b);
             foreach (var item in Vertices)
-                item.DrawLibrary(g, p, b);
+                item.DrawLibrary(dbitmap, g, p, b);
         }
         public override void DrawSelected(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
         {
@@ -108,30 +108,30 @@ namespace PolygonEditor.Geometry.Objects
                     item.Draw(dbitmap, g, p, b);
             }
         }
-        public override void DrawLibrarySelected(Graphics g, Pen p, Brush b, Brush s)
+        public override void DrawLibrarySelected(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s)
         {
             if (selectedVertex == null && selectedLine == null && selectedBezierLine == null)
                 DrawSelection(g, p, s);
             foreach (var item in BezierLines)
             {
                 if (item == selectedBezierLine)
-                    item.DrawLibrarySelected(g, p, b, s);
+                    item.DrawLibrarySelected(dbitmap, g, p, b, s);
                 else
-                    item.DrawLibrary(g, p, b);
+                    item.DrawLibrary(dbitmap, g, p, b);
             }
             foreach (var item in Lines)
             {
                 if (item == selectedLine)
-                    item.DrawLibrarySelected(g, p, b, s);
+                    item.DrawLibrarySelected(dbitmap, g, p, b, s);
                 else
-                    item.DrawLibrary(g, p, b);
+                    item.DrawLibrary(dbitmap, g, p, b);
             }
             foreach (var item in Vertices)
             {
                 if (item == selectedVertex)
-                    item.DrawLibrarySelected(g, p, b, s);
+                    item.DrawLibrarySelected(dbitmap, g, p, b, s);
                 else
-                    item.DrawLibrary(g, p, b);
+                    item.DrawLibrary(dbitmap, g, p, b);
             }
         }
 
@@ -205,12 +205,8 @@ namespace PolygonEditor.Geometry.Objects
 
             Vertex vprev = selectedVertex!.Prev!.A!;
             Vertex vnext = selectedVertex!.Next!.B!;
-            selectedVertex.Prev.B = vnext;
-            selectedVertex.Next.A = vprev;
 
             Line l = new(vprev, vnext);
-            vprev.Next = l;
-            vnext.Prev = l;
 
             Vertices.Remove(selectedVertex);
             if(selectedVertex.Prev is BezierLine)
@@ -238,18 +234,11 @@ namespace PolygonEditor.Geometry.Objects
                 throw new Exception();
             }
 
-            //if(selectedVertex.Prev.A.Prev is BezierLine)
-            //{
-            //    BezierLine bLine = (BezierLine)selectedVertex.Prev.A.Prev;
-            //    selectedVertex.PropertyChanged -= bLine.ConVertexChangePos;
-            //    selectedVertex.Next.B.PropertyChanged += bLine.ConVertexChangePos;
-            //}
-            //if(selectedVertex.Next.B.Next is BezierLine)
-            //{
-            //    BezierLine bLine = (BezierLine)selectedVertex.Next.B.Next;
-            //    selectedVertex.PropertyChanged -= bLine.ConVertexChangePos;
-            //    selectedVertex.Prev.A.PropertyChanged += bLine.ConVertexChangePos;
-            //}
+            vprev.Next = l;
+            vnext.Prev = l;
+
+            selectedVertex.Prev.B = vnext;
+            selectedVertex.Next.A = vprev;
 
             Lines.Add(l);
             selectedVertex = null;
