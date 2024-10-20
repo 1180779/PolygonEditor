@@ -16,34 +16,7 @@ namespace PolygonEditor.Geometry.Objects
 
         public Polygon GenerateEquilateral(int n = 5, int R = 100)
         {
-            float b = 360 / n;
-            List<Vertex> vertices = new(n);
-            for (int i = 0; i < n; i++)
-            {
-                Vertex v = new Vertex(Center);
-                v.Y += (int)(R * Math.Sin(b * i / 360 * 2 * Math.PI));
-                v.X += (int)(R * Math.Cos(b * i / 360 * 2 * Math.PI));
-                vertices.Add(v);
-            }
-
-            List<Line> lines = new(n);
-            for (int i = 0; i < n; i++)
-            {
-                Line line = new Line(vertices[i], vertices[(i + 1) % n]);
-                lines.Add(line);
-                vertices[i].Next = line;
-                vertices[(i + 1) % n].Prev = line;
-            }
-
-            Polygon res = new Polygon();
-            for (int i = 0; i < n; i++)
-            {
-                res.Vertices.Add(vertices[i]);
-                res.Lines.Add(lines[i]);
-            }
-
-            res.ReconstructVerticesInOrder();
-            return res;
+            return new Polygon(Center);
         }
 
         public Polygon GeneratePredefined()
@@ -51,14 +24,14 @@ namespace PolygonEditor.Geometry.Objects
             Polygon res = GenerateEquilateral();
             res.selectedLine = res.Lines[1];
             res.ConvertLineToBezier();
-            res.Lines[2].Restriction = Line.LineRestriction.ConstantLength;
-            res.Lines[3].Restriction = Line.LineRestriction.Horizontal;
+            res.Lines[2].Restriction = PEdge.LineRestriction.ConstantLength;
+            res.Lines[3].Restriction = PEdge.LineRestriction.Horizontal;
             return res;
         }
 
         public Polygon Generate(int n = 5, int R = 100)
         {
-            Polygon res = GenerateEquilateral();
+            Polygon res = new Polygon(Center, n, R);
 
             int bLineIdx = Random.Shared.Next(n);
             res.selectedLine = res.Lines[bLineIdx];

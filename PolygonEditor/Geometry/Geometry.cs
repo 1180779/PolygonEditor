@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,7 +23,7 @@ namespace PolygonEditor.Geometry
             return (float)Math.Sqrt(Dist2(A, B));
         }
 
-        public static int DistToLine2(Point A, Line L)
+        public static int DistToLine2(Point A, Edge L)
         {
             if (L.A == null || L.B == null)
                 throw new InvalidOperationException();
@@ -44,12 +45,22 @@ namespace PolygonEditor.Geometry
         }
 
         // https://stackoverflow.com/questions/3813681/checking-to-see-if-3-points-are-on-the-same-line
+        // https://en.wikipedia.org/wiki/Area_of_a_triangle#Using_vectors
         public static bool PointsInLine(Point2 A, Point2 B, Point2 C, int tol = 25)
         {
-            return Math.Abs(A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y)) <= tol;
+            int abs = Math.Abs(A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y));
+            return abs <= tol;
         }
 
-        public static int Dist2(Point2 A, Line L)
+        public static bool PointOnEdge(Point2 P, Point2 A, Point2 B, int tol = 0)
+        {
+            if (!PointsInLine(P, A, B))
+                return false;
+            // TO DO: find a fast way
+            return Math.Abs(Dist(A, P) + Dist(P, B) - Dist(A, B)) <= tol;
+        }
+
+        public static int Dist2(Point2 A, Edge L)
         {
             if (L.A == null || L.B == null)
                 throw new InvalidOperationException();
@@ -88,7 +99,7 @@ namespace PolygonEditor.Geometry
 
         // https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
         // Function to check if a point is inside a polygon
-        public static bool PointInPolygon(Point2 p, List<Vertex> vertices)
+        public static bool PointInPolygon(Point2 p, List<PVertex> vertices)
         {
             int numVertices = vertices.Count;
             double x = p.X, y = p.Y;

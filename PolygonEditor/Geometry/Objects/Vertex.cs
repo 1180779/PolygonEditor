@@ -10,144 +10,57 @@ using System.Windows.Forms;
 
 namespace PolygonEditor.Geometry.Objects
 {
-    public class Vertex : MovableItem, INotifyPropertyChanged
+    public class Vertex : Item
     {
-        public bool Locked { get; set; } = false;
-        public void Lock() { Locked = true; }
-        public void Unlock() { Locked = false; }
-
-
-        public enum Continuity { G0, G1, C1 };
-        private Continuity _continuity = Continuity.G0;
-        public Continuity ContinuityType
-        {
-            get { return _continuity; }
-            set {
-                if (_continuity != value) 
-                {
-                    _continuity = value;
-                    Prev.A.NotifyPropertyChanged();
-                    Next.B.NotifyPropertyChanged();
-                }
-            }
-        }
         public bool HasOneBezier { get { return (_prev is BezierLine && _next is not BezierLine) 
                     || (_prev is not BezierLine && _next is BezierLine); } }
 
-
-        public const int MAXDEPTH = 10;
-        public const int MAXITERATIONS = 25;
-        public int Depth { get; private set; } = 0;
-        public int Iterations { get; private set; } = 0;
         protected const int RADIUS = 5;
         
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void NotifyPropertyChanged()
-        {
-            if (Depth == 0)
-                Iterations = 0;
-            Iterations++;
-            Depth++;
-            if (Depth < MAXDEPTH)
-            {
-                if (Iterations <= MAXITERATIONS)
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(""));
-            }
-            Depth--;
-        }
-        private Point2 _point;
-        public Point2 PointLocked {  
-            get { return _point; } 
-            set
-            {
-                if (Locked)
-                    return;
-                Lock();
-                _point = value;
-                NotifyPropertyChanged();
-                Unlock();
-            }
-        }
-        public Point2 Point
+        protected Point2 _point;
+        public virtual Point2 Point
         {
             get { return _point; }
             set
             {
                 if (Locked)
-                {
-                    NotifyPropertyChanged();
                     return;
-                }
-                if (_point.X != value.X || _point.Y != value.Y)
-                {
-                    _point = value;
-                    NotifyPropertyChanged();
-                }
+                _point = value;
             }
         }
-        public int X
+        public virtual int X
         {
             get { return _point.X; }
             set
             {
                 if (Locked)
-                {
-                    NotifyPropertyChanged();
                     return;
-                }
-                if (_point.X != value)
-                {
-                    _point.X = value;
-                    NotifyPropertyChanged();
-                }
+                _point.X = value;
+
             }
         }
-        public int Y
+        public virtual int Y
         {
             get { return _point.Y; }
             set
             {
                 if (Locked)
-                {
-                    NotifyPropertyChanged();
                     return;
-                }
-                if (_point.Y != value)
-                {
-                    _point.Y = value;
-                    NotifyPropertyChanged();
-                }
+                _point.Y = value;
             }
         }
 
-        private Line? _prev = null;
-        public Line? Prev
+        protected Edge? _prev = null;
+        protected Edge? _next = null;
+        public virtual Edge? Prev
         {
             get { return _prev; }
-            set
-            {
-                if (_prev != null)
-                    PropertyChanged -= _prev.VertexChangedPos;
-
-                _prev = value;
-                if (value != null)
-                    PropertyChanged += value.VertexChangedPos;
-            }
+            set { _prev = value; }
         }
-        private Line? _next = null;
-        public Line? Next
+        public virtual Edge? Next
         {
             get { return _next; }
-            set
-            {
-                if (_next != null)
-                    PropertyChanged -= _next.VertexChangedPos;
-
-                _next = value;
-                if (value != null)
-                    PropertyChanged += value.VertexChangedPos;
-            }
+            set { _next = value; }
         }
 
         public override int S_RADIUS => RADIUS + SA_RADIUS;
@@ -183,51 +96,10 @@ namespace PolygonEditor.Geometry.Objects
             g.DrawEllipse(p, X - RADIUS, Y - RADIUS, RADIUS * 2, RADIUS * 2);
         }
 
-        public void MoveLock(Vec2 v) 
-        {
-            if (Locked)
-                return;
-            Lock();
-            _point += v;
-            NotifyPropertyChanged();
-            Unlock();
-        }
-        public void MoveLockUnlockLater(Vec2 v)
-        {
-            if (Locked)
-                return;
-            Lock();
-            _point += v;
-            NotifyPropertyChanged();
-        }
+        private bool _locked = false;
+        public override bool Locked { get { return _locked; } }
+        public override void Lock() { _locked = true; }
+        public override void Unlock() { _locked = false; }
         public override void Move(Vec2 v) => Point += v;
-        public void MoveNoNotify(Vec2 v) 
-        {
-            if(!Locked)
-                _point += v;
-        } 
-
-        public static void MoveLockDelayNotify(Vertex A, Vertex B, Vec2 v)
-        {
-            if(!A.Locked && !B.Locked)
-            {
-                A.Lock();
-                B.Lock();
-                A._point += v;
-                B._point += v;
-                A.NotifyPropertyChanged();
-                B.NotifyPropertyChanged();
-                A.Unlock();
-                B.Unlock();
-            }
-            else if (!A.Locked)
-            {
-                A.MoveLock(v);
-            }
-            else
-            {
-                B.MoveLock(v);
-            }
-        }
     }
 }

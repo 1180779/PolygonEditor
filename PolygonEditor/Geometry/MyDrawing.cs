@@ -11,7 +11,8 @@ namespace PolygonEditor.Geometry
     public static class MyDrawing
     {
         // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-        private static void PlotLineLow(Point a, Point b, DirectBitmap dbitmap, Color c, int dist = 1) // dist - gap between pixels
+        // dist - gap between pixels
+        private static void PlotLineLow(Point a, Point b, DirectBitmap dbitmap, Color c, int dist = 1) 
         {
             int tdist = 0;
             int dx = b.X - a.X;
