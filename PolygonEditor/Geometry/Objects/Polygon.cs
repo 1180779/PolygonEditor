@@ -291,6 +291,19 @@ namespace PolygonEditor.Geometry.Objects
             B.Prev = prev;
             B.Next = next;
 
+            if(selectedLine.A.Prev is BezierLine)
+            {
+                BezierLine bline = (BezierLine)(selectedLine.A.Prev);
+                C.PropertyChanged -= bline.ConVertexChangePos;
+                B.PropertyChanged += bline.ConVertexChangePos;
+            }
+            if (selectedLine.B.Next is BezierLine) 
+            {
+                BezierLine bline = (BezierLine)(selectedLine.B.Next);
+                A.PropertyChanged -= bline.ConVertexChangePos;
+                B.PropertyChanged += bline.ConVertexChangePos;
+            }
+
             Vertices.Add(B);
             Lines.Remove(selectedLine);
             Lines.Add(prev);

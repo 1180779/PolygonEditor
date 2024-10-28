@@ -235,12 +235,14 @@ namespace PolygonEditor.Geometry.Objects
                     {
                         u.Point = (Geometry.ProjectPointOntoLine(u.Point, P2.Point, A.Point));
                     }
+                    A.NotifyPropertyChanged();
                 }
                 else if(A.ContinuityType == PVertex.Continuity.C1)
                 {
                     PVertex u = A.Prev!.A;
                     Vec2 w = P2.Point - A.Point;
                     u.Point = A.Point - 3 * w;
+                    A.NotifyPropertyChanged();
                 }
             }
             else
@@ -253,12 +255,14 @@ namespace PolygonEditor.Geometry.Objects
                     { 
                         u.Point = (Geometry.ProjectPointOntoLine(u.Point, P3.Point, B.Point));
                     }
+                    B.NotifyPropertyChanged();
                 }
                 else if (B.ContinuityType == PVertex.Continuity.C1)
                 {
                     PVertex u = B.Next!.B;
                     Vec2 w = P3.Point - B.Point;
                     u.Point = B.Point - 3 * w;
+                    B.NotifyPropertyChanged();
                 }
             }
             selectedControlVertex.Unlock();
