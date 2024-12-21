@@ -30,6 +30,7 @@
         {
             button_ok = new Button();
             label_about = new Label();
+            label1 = new Label();
             SuspendLayout();
             // 
             // button_ok
@@ -47,9 +48,18 @@
             label_about.Location = new Point(12, 9);
             label_about.MaximumSize = new Size(400, 400);
             label_about.Name = "label_about";
-            label_about.Size = new Size(160, 69);
+            label_about.Size = new Size(160, 57);
             label_about.TabIndex = 2;
-            label_about.Text = "PolygonEditor Version 0.0.1. Radosław Glasek";
+            label_about.Text = "PolygonEditor Version 1.0";
+            // 
+            // label1
+            // 
+            label1.Location = new Point(12, 66);
+            label1.MaximumSize = new Size(400, 400);
+            label1.Name = "label1";
+            label1.Size = new Size(160, 20);
+            label1.TabIndex = 3;
+            label1.Text = "(c) Radosław Glasek";
             // 
             // About
             // 
@@ -57,6 +67,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(184, 121);
             ControlBox = false;
+            Controls.Add(label1);
             Controls.Add(label_about);
             Controls.Add(button_ok);
             Name = "About";
@@ -69,5 +80,6 @@
 
         private Button button_ok;
         private Label label_about;
+        private Label label1;
     }
 }

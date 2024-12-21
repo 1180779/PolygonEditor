@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace PolygonEditor.Geometry.Objects
 {
-    public abstract class MovableItem : Item
+    public interface IStructureItem
     {
-        public abstract void Move(Vec2 v);
+        public abstract void MoveInStructure(Vec2 v);
+        public abstract void NotifyInStructure();
     }
 }

@@ -17,5 +17,10 @@ namespace PolygonEditor.Geometry.Objects
         public abstract void DrawLibrary(DirectBitmap dbitmap, Graphics g, Pen p, Brush b);
         public abstract void DrawSelected(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s);
         public abstract void DrawLibrarySelected(DirectBitmap dbitmap, Graphics g, Pen p, Brush b, Brush s);
+        
+        public abstract bool Locked { get; }
+        public abstract void Lock();
+        public abstract void Unlock();
+        public abstract void Move(Vec2 v);
     }
 }

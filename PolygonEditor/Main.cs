@@ -136,6 +136,8 @@ namespace PolygonEditor
         {
             if (e.Button == MouseButtons.Left)
             {
+                textBoxLength.Text = "";
+
                 EnableRadioRestrictions(false);
                 UncheckRadioRestrictions();
 
@@ -145,15 +147,17 @@ namespace PolygonEditor
                 moving = true;
 
                 // disable buttons
-                buttonRemoveVertex.Enabled = false;
                 buttonAddVertex.Enabled = false;
+                buttonRemoveVertex.Enabled = false;
                 buttonLineToBezier.Enabled = false;
                 buttonBezierToLine.Enabled = false;
-
+                buttonRemovePolygon.Enabled = false;
 
                 ML = e.Location;
-                foreach (var p in polygons)
+                Polygon p;
+                for (int i = polygons.Count - 1; i >= 0; i--)
                 {
+                    p = polygons[i];
                     if (p.SelectedItem(ML) || p.IsSelected(ML)) // selected polygon or polygon part
                     {
                         // p is the selected polygon
@@ -166,31 +170,32 @@ namespace PolygonEditor
                             if (selectedP.selectedVertex.HasOneBezier)
                             {
                                 EnableRadioCons();
-                                if (selectedP.selectedVertex.ContinuityType == Vertex.Continuity.G0)
+                                if (selectedP.selectedVertex.ContinuityType == PVertex.Continuity.G0)
                                     radioConG0.Checked = true;
-                                else if (selectedP.selectedVertex.ContinuityType == Vertex.Continuity.G1)
+                                else if (selectedP.selectedVertex.ContinuityType == PVertex.Continuity.G1)
                                     radioConG1.Checked = true;
-                                else if (selectedP.selectedVertex.ContinuityType == Vertex.Continuity.C1)
+                                else if (selectedP.selectedVertex.ContinuityType == PVertex.Continuity.C1)
                                     radioConC1.Checked = true;
                             }
                         }
                         else if (selectedP.selectedLine != null) // selected line
                         {
+                            textBoxLength.Text = selectedP.selectedLine.Length.ToString();
                             buttonAddVertex.Enabled = true;
 
                             EnableRadioRestrictions();
                             buttonLineToBezier.Enabled = true;
 
-                            if (selectedP.selectedLine.Restriction == Line.LineRestriction.None)
+                            if (selectedP.selectedLine.Restriction == PEdge.LineRestriction.None)
                                 radioRestrNoRestr.Checked = true;
-                            else if (selectedP.selectedLine.Restriction == Line.LineRestriction.Horizontal)
+                            else if (selectedP.selectedLine.Restriction == PEdge.LineRestriction.Horizontal)
                                 radioRestrHorizontal.Checked = true;
-                            else if (selectedP.selectedLine.Restriction == Line.LineRestriction.Vertical)
+                            else if (selectedP.selectedLine.Restriction == PEdge.LineRestriction.Vertical)
                                 radioRestrVertical.Checked = true;
-                            else if (selectedP.selectedLine.Restriction == Line.LineRestriction.ConstantLength)
+                            else if (selectedP.selectedLine.Restriction == PEdge.LineRestriction.ConstantLength)
                                 radioRestrConst.Checked = true;
                         }
-                        else if(selectedP.selectedBezierLine != null) // selected bezier line
+                        else if (selectedP.selectedBezierLine != null) // selected bezier line
                         {
                             buttonBezierToLine.Enabled = true;
                         }
@@ -217,7 +222,7 @@ namespace PolygonEditor
         {
             if (!moving)
                 return;
-                
+
             PML = ML;
             ML = e.Location;
             if (selectedP == null)
@@ -247,14 +252,17 @@ namespace PolygonEditor
 
         private void Main_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Delete)
-            {
-                RemoveSelectedVertex();
-            }
-            if (e.KeyCode == Keys.N && selectedP != null)
-            {
-                AddNewVertex();
-            }
+            // TO DO:
+            // add proper key support
+
+            //if (e.KeyCode == Keys.Delete)
+            //{
+            //    RemoveSelectedVertex();
+            //}
+            //if (e.KeyCode == Keys.N && selectedP != null)
+            //{
+            //    AddNewVertex();
+            //}
         }
 
         ///////////////////////////////////////////////////////////////////////////
@@ -302,13 +310,13 @@ namespace PolygonEditor
                 radioRestr.Checked = false;
         }
 
-        private Dictionary<RadioButton, Line.LineRestriction> radioRestrLineRestr = new() { };
+        private Dictionary<RadioButton, PEdge.LineRestriction> radioRestrLineRestr = new() { };
         private void PolluteRadioRestrLineRestr()
         {
-            radioRestrLineRestr.Add(radioRestrNoRestr, Line.LineRestriction.None);
-            radioRestrLineRestr.Add(radioRestrHorizontal, Line.LineRestriction.Horizontal);
-            radioRestrLineRestr.Add(radioRestrVertical, Line.LineRestriction.Vertical);
-            radioRestrLineRestr.Add(radioRestrConst, Line.LineRestriction.ConstantLength);
+            radioRestrLineRestr.Add(radioRestrNoRestr, PEdge.LineRestriction.None);
+            radioRestrLineRestr.Add(radioRestrHorizontal, PEdge.LineRestriction.Horizontal);
+            radioRestrLineRestr.Add(radioRestrVertical, PEdge.LineRestriction.Vertical);
+            radioRestrLineRestr.Add(radioRestrConst, PEdge.LineRestriction.ConstantLength);
         }
         private void UncheckRadioRestrictionsButOne(RadioButton radioRestrOn)
         {
@@ -330,7 +338,7 @@ namespace PolygonEditor
 
         private void buttonLineToBezier_Click(object sender, EventArgs e)
         {
-            selectedP.ConvertLineToBezier();
+            selectedP!.ConvertLineToBezier();
             selectedP = null;
             UncheckRadioRestrictions();
             EnableRadioRestrictions(false);
@@ -340,7 +348,7 @@ namespace PolygonEditor
 
         private void buttonBezierToLine_Click(object sender, EventArgs e)
         {
-            selectedP.ConvertBezierToLine();
+            selectedP!.ConvertBezierToLine();
             selectedP = null;
             buttonBezierToLine.Enabled = false;
         }
@@ -359,12 +367,12 @@ namespace PolygonEditor
             radioCons.Add(radioConC1);
         }
 
-        private Dictionary<RadioButton, Vertex.Continuity> radioConVertexCon = new() { };
+        private Dictionary<RadioButton, PVertex.Continuity> radioConVertexCon = new() { };
         private void PolluteRadioConVertexCon()
         {
-            radioConVertexCon.Add(radioConG0, Vertex.Continuity.G0);
-            radioConVertexCon.Add(radioConG1, Vertex.Continuity.G1);
-            radioConVertexCon.Add(radioConC1, Vertex.Continuity.C1);
+            radioConVertexCon.Add(radioConG0, PVertex.Continuity.G0);
+            radioConVertexCon.Add(radioConG1, PVertex.Continuity.G1);
+            radioConVertexCon.Add(radioConC1, PVertex.Continuity.C1);
         }
         private void UncheckRadioConsButOne(RadioButton radioConOn)
         {
@@ -436,12 +444,13 @@ namespace PolygonEditor
             {
                 verticesCount = int.Parse(textBoxVerteciesC.Text);
                 R = int.Parse(textBoxRadius.Text);
-                
+
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
+
             polygons.Add(pFactory.GenerateEquilateral(verticesCount, R));
         }
 

@@ -9,12 +9,10 @@ using System.Drawing.Drawing2D;
 
 namespace PolygonEditor.Geometry.Objects
 {
-    public class BezierControlLine : Line
+    public class BezierControlLine : PEdge
     {
         public readonly float[] DashPattern = { 5 };
-        public BezierControlLine() : base() { }
-        public BezierControlLine(Vertex A) : base(A) { }
-        public BezierControlLine(Vertex A, Vertex B) : base(A, B) { }
+        public BezierControlLine(PVertex A, PVertex B) : base(A, B) { }
         public override void Draw(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
             if (A == null || B == null)

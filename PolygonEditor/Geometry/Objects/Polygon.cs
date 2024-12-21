@@ -9,20 +9,48 @@ using System.Net.Http.Headers;
 
 namespace PolygonEditor.Geometry.Objects
 {
-    public class Polygon : MovableItem
+    public class Polygon : Item
     {
-        public List<Vertex> VerticesInOrder = [];
-        public List<Vertex> Vertices = [];
-        public List<Line> Lines = [];
+        public List<PVertex> VerticesInOrder = [];
+        public List<PVertex> Vertices = [];
+        public List<PEdge> Lines = [];
         public List<BezierLine> BezierLines = [];
 
-        public Vertex? selectedVertex = null;
-        public Line? selectedLine = null;
+        public PVertex? selectedVertex = null;
+        public PEdge? selectedLine = null;
         public BezierLine? selectedBezierLine = null;
 
         public override int S_RADIUS => throw new NotImplementedException();
 
-        public Polygon() { }
+        public Polygon(Point2 center, int n = 5, int R = 100) 
+        {
+            float b = 360 / n;
+            List<PVertex> vertices = new(n);
+            for (int i = 0; i < n; i++)
+            {
+                PVertex v = new(center);
+                v.Y += (int)(R * Math.Sin(b * i / 360 * 2 * Math.PI));
+                v.X += (int)(R * Math.Cos(b * i / 360 * 2 * Math.PI));
+                vertices.Add(v);
+            }
+
+            List<PEdge> lines = new(n);
+            for (int i = 0; i < n; i++)
+            {
+                PEdge line = new PEdge(vertices[i], vertices[(i + 1) % n]);
+                lines.Add(line);
+                vertices[i].Next = line;
+                vertices[(i + 1) % n].Prev = line;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                Vertices.Add(vertices[i]);
+                Lines.Add(lines[i]);
+            }
+
+            ReconstructVerticesInOrder();
+        }
 
         public Point[] GetPointsNoBezier()
         {
@@ -39,33 +67,34 @@ namespace PolygonEditor.Geometry.Objects
                 bezierVerticesCount += bezier.Approximation.Count;
             Point[] points = new Point[Vertices.Count + bezierVerticesCount];
 
-            int i = 1;
+            int i = 0;
             Vertex v = Vertices[0];
-            points[0] = v.Point;
-            Vertex w = v.Next!.B!;
-            while(w != v)
+            Vertex w = v;
+            do
             {
-                points[i] = w.Point; 
+                points[i] = w.Point;
                 i++;
-                if(w.Next is BezierLine)
+                if (w.Next is BezierLine)
                 {
                     BezierLine bLine = (BezierLine)w.Next;
-                    for(int j = 0; j < bLine.Approximation.Count; ++j)
+                    for (int j = 0; j < bLine.Approximation.Count; ++j)
                         points[i + j] = bLine.Approximation[j];
-                    i += bLine.Vertices.Count;
+                    i += bLine.Approximation.Count;
                 }
                 w = w.Next!.B!;
-            }
+            } while (w != v);
             return points;
         }
 
         public override void DrawSelection(Graphics g, Pen p, Brush s)
         {
-            Point[] points = GetPointsNoBezier();
+            Point[] points = GetPoints();
             g.FillPolygon(s, points);
         }
         public override void Draw(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
+            Point[] points = GetPoints();
+            g.FillPolygon(Brushes.White, points);
             foreach (var item in BezierLines)
                 item.Draw(dbitmap, g, p, b);
             foreach (var item in Lines)
@@ -75,6 +104,8 @@ namespace PolygonEditor.Geometry.Objects
         }
         public override void DrawLibrary(DirectBitmap dbitmap, Graphics g, Pen p, Brush b)
         {
+            Point[] points = GetPoints();
+            g.FillPolygon(Brushes.White, points);
             foreach (var item in BezierLines)
                 item.DrawLibrary(dbitmap, g, p, b);
             foreach (var item in Lines)
@@ -203,10 +234,10 @@ namespace PolygonEditor.Geometry.Objects
             if (Vertices.Count == 3)
                 return false;
 
-            Vertex vprev = selectedVertex!.Prev!.A!;
-            Vertex vnext = selectedVertex!.Next!.B!;
+            PVertex vprev = selectedVertex!.Prev!.A!;
+            PVertex vnext = selectedVertex!.Next!.B!;
 
-            Line l = new(vprev, vnext);
+            PEdge l = new((PVertex)vprev, (PVertex)vnext);
 
             Vertices.Remove(selectedVertex);
             if(selectedVertex.Prev is BezierLine)
@@ -251,14 +282,27 @@ namespace PolygonEditor.Geometry.Objects
             if (selectedLine == null)
                 return false;
 
-            Vertex A = selectedLine!.A!;
-            Vertex C = selectedLine!.B!;
+            PVertex A = selectedLine!.A!;
+            PVertex C = selectedLine!.B!;
 
-            Vertex B = new(selectedLine.Middle);
-            Line prev = new(A, B);
-            Line next = new(B, C);
+            PVertex B = new(selectedLine.Middle);
+            PEdge prev = new(A, B);
+            PEdge next = new(B, C);
             B.Prev = prev;
             B.Next = next;
+
+            if(selectedLine.A.Prev is BezierLine)
+            {
+                BezierLine bline = (BezierLine)(selectedLine.A.Prev);
+                C.PropertyChanged -= bline.ConVertexChangePos;
+                B.PropertyChanged += bline.ConVertexChangePos;
+            }
+            if (selectedLine.B.Next is BezierLine) 
+            {
+                BezierLine bline = (BezierLine)(selectedLine.B.Next);
+                A.PropertyChanged -= bline.ConVertexChangePos;
+                B.PropertyChanged += bline.ConVertexChangePos;
+            }
 
             Vertices.Add(B);
             Lines.Remove(selectedLine);
@@ -275,11 +319,11 @@ namespace PolygonEditor.Geometry.Objects
         {
             VerticesInOrder.Clear();
             VerticesInOrder.EnsureCapacity(Vertices.Count);
-            Vertex v = Vertices[0];
+            PVertex v = Vertices[0];
             for (int i = 0; i < Vertices.Count; i++)
             {
                 VerticesInOrder.Add(v);
-                v = v!.Next!.B!;
+                v = v.Next!.B;
             }
         }
 
@@ -287,14 +331,14 @@ namespace PolygonEditor.Geometry.Objects
         {
             if (selectedLine == null) 
                 return;
-            BezierLine bLine = selectedLine.ConvertToBezierLine();
+            BezierLine bLine = selectedLine.ToBezier();
             BezierLines.Add(bLine);
             Lines.Remove(selectedLine);
 
             if (selectedLine.A.Prev is BezierLine)
-                selectedLine.A.ContinuityType = Vertex.Continuity.G0;
+                selectedLine.A.ContinuityType = PVertex.Continuity.G0;
             else if (selectedLine.B.Next is BezierLine)
-                selectedLine.B.ContinuityType = Vertex.Continuity.G0;
+                selectedLine.B.ContinuityType = PVertex.Continuity.G0;
 
             selectedLine = null;
         }
@@ -303,17 +347,27 @@ namespace PolygonEditor.Geometry.Objects
         {
             if(selectedBezierLine == null) 
                 return;
-            Line l = selectedBezierLine.BezierToLine();
+            PEdge l = selectedBezierLine.ToEdge();
             Lines.Add(l);
             BezierLines.Remove(selectedBezierLine);
 
-            selectedBezierLine.A.ContinuityType = Vertex.Continuity.G0;
-            selectedBezierLine.B.ContinuityType = Vertex.Continuity.G0;
+            selectedBezierLine.A.ContinuityType = PVertex.Continuity.G0;
+            selectedBezierLine.B.ContinuityType = PVertex.Continuity.G0;
             
             selectedBezierLine = null;
         }
 
-        
+        public override bool Locked => throw new NotImplementedException();
+        public override void Lock()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Unlock()
+        {
+            throw new NotImplementedException();
+        }
+
         private bool PointInPolygon(Point2 p) => Geometry.PointInPolygon(p, VerticesInOrder);
     }
 }

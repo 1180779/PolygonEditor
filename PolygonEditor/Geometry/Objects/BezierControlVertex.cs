@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PolygonEditor.Geometry.Objects
 {
-    public class BezierControlVertex : Vertex
+    public class BezierControlVertex : PVertex
     {
         public BezierControlVertex(Point p) : base(p) { }
         public override void Draw(DirectBitmap dbitmap, Graphics g, Pen p, Brush b) => DrawLibrary(dbitmap, g, p, b);
